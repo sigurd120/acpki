@@ -23,6 +23,8 @@ Updated: N/A
 1. (Recommended) Setup your local virtual environment (venv) with Python 2.7 as the project interpreter. If you *do not*
     use venv, make sure that you have Python 2.7 installed system-wide and that you have access to it from your command
     line or terminal. 
+1. Install [Microsoft Visual C++](https://www.microsoft.com/en-us/download/confirmation.aspx?id=44266) (Windows systems)
+    or ??? for Linux systems. These are required for installing py-radix, a requirement for acitoolkit. 
 1. Install everything in requirements.txt (preferrably while in your virtual environment). This includes all 
 requirements for packages used as well as for the AC-PKI software itself. \
     ``pip install -r requirements.txt``

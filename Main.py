@@ -1,10 +1,14 @@
-from acitoolkit import acitoolkit
+from acpki.ACIAdapter import ACIAdapter
 
 
 class Main:
     def __init__(self):
-        pass
+        self.aci_adapter = None
+
+    def run(self):
+        self.aci_adapter = ACIAdapter()
 
 
 if __name__ == "__main__":
-    main = Main
+    main = Main()
+    main.run()
