@@ -1,5 +1,5 @@
 from acitoolkit import acitoolkit
-from util import Networker
+from util import NetworkHelper
 
 
 class ACIAdapter:
@@ -7,6 +7,7 @@ class ACIAdapter:
     The ACIAdapter works as the bridge between AC-PKI and Cisco ACI. It sets up a subscription with the APIC and the
     tenant in question.
     """
+
     def __init__(self):
         # Configuration parameters
         self.apic_url = "https://sandboxapicdc.cisco.com"
@@ -36,9 +37,9 @@ class ACIAdapter:
         status = self.session.login(self.connection_timeout)
         if status.ok:
             if self.verbose:
-                print("Authentication successful! (" + Networker.status_to_string(status) + ")")
+                print("Authentication successful! (" + NetworkHelper.status_to_string(status) + ")")
             return True
         else:
             if self.verbose:
-                print("Authentication failed. (" + Networker.status_to_string(status) + ")")
+                print("Authentication failed. (" + NetworkHelper.status_to_string(status) + ")")
             return False
