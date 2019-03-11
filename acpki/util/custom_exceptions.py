@@ -1,7 +1,6 @@
 class ConfigError(StandardError):
-    def __init__(self, *args, **kwargs):
-        pass
+    def __init__(self, value):
+        self.value = value
 
-    @staticmethod
-    def __new__(cls, *more):
-        pass
+    def __str__(self):
+        return repr(self.value)
