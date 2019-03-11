@@ -1,4 +1,5 @@
 from acpki.ACIAdapter import ACIAdapter
+from acpki.pki.CertificateManager import CertificateManager
 
 
 class Main:
@@ -6,7 +7,8 @@ class Main:
         self.aci_adapter = None
 
     def run(self):
-        self.aci_adapter = ACIAdapter()
+        csr = CertificateManager.create_csr(CN="127.0.0.1")
+        CertificateManager.save_csr(csr, "client.csr")
 
 
 if __name__ == "__main__":
