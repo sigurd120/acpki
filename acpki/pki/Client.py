@@ -1,4 +1,4 @@
-import sys, os, socket
+import sys, socket
 from OpenSSL import SSL
 from acpki.pki.CommAgent import CommAgent
 from acpki.util.custom_exceptions import *

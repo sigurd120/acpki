@@ -1,12 +1,11 @@
-import sys, os
+import os
 from OpenSSL import crypto as crypto
-from OpenSSL import SSL
 
 
 class CertificateManager:
     """
     This class will handle common tasks like verifying, creating or signing certificates. The class is partly based on
-    the examples provided in pyOpenSSL. 
+    the examples provided in pyOpenSSL.
     """
     default_validity = 31536000  # One year (3600 * 24 * 365)
     certs_dir = os.path.abspath("./acpki/pki/certs")  # Relative to Main.py
