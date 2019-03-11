@@ -13,8 +13,8 @@ class CertificateManager:
     def __init__(self):
         pass
 
-    @classmethod
-    def create_csr(cls, digest="md5", **attributes):
+    @staticmethod
+    def create_csr(digest="md5", **attributes):
         """
         Generates a default type
         :param digest:          Digest hashing algorithm. Default: "md5"
@@ -29,16 +29,16 @@ class CertificateManager:
             if key in ["C", "ST", "L", "O", "OU", "CN"]:
                 setattr(subject, key, val)
             else:
-                raise ValueError("Invalid attribute provided for CSR. Permitted values: C, ST, L, O, OU and CN.")
+                raise ValueError("Invalid attribute provided for CSR. Permitted keys: C, ST, L, O, OU and CN.")
 
         csr.set_pubkey(public_key)
         csr.sign(public_key, digest)
 
         return csr
 
-    @classmethod
-    def create_certificate(cls, csr, serial_number, issuer_cert, issuer_key, not_before=0, not_after=default_validity,
-                           digest="md5"):
+    @staticmethod
+    def create_cert(csr, serial_number, issuer_cert, issuer_key, not_before=0, not_after=default_validity,
+                    digest="md5"):
         """
         :param csr:             The certificate signing request (CSR) on which to base the certificate.
         :param serial_number:   Serial number to apply for the certificate.
@@ -58,9 +58,9 @@ class CertificateManager:
         cert.sign(issuer_key, digest)
         return cert
 
-    @classmethod
-    def create_self_signed_certificate(cls, csr, private_key, serial_number, not_before=0, not_after=default_validity,
-                                       digest="md5"):
+    @staticmethod
+    def create_self_signed_cert(csr, private_key, serial_number, not_before=0, not_after=default_validity,
+                                digest="md5"):
         """
 
         :param csr:             The certificate signing request (CSR) on which to base the certificate.
@@ -80,8 +80,8 @@ class CertificateManager:
         cert.sign(private_key, digest)
         return cert
 
-    @classmethod
-    def create_key_pair(cls, key_type, key_size):
+    @staticmethod
+    def create_key_pair(key_type, key_size):
         """
         Generate a key pair for certificate generation.
         :param key_type:        Valid key type, either crypto.TYPE_RSA or crypto.TYPE_DSA
@@ -91,5 +91,3 @@ class CertificateManager:
         pkey = crypto.Pkey()
         pkey.generate_key(key_type, key_size)
         return pkey
-
-
