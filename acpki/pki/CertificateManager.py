@@ -1,5 +1,5 @@
 import os
-from OpenSSL import crypto as crypto
+from OpenSSL import crypto
 
 
 class CertificateManager:
@@ -14,14 +14,14 @@ class CertificateManager:
         pass
 
     @staticmethod
-    def create_csr(digest="md5", **attributes):
+    def create_csr(key_pair, digest="md5", **attributes):
         """
-        Generates a default type
+        Generates a certificate signing request (CSR) with the default encryption type and key size.
         :param digest:          Digest hashing algorithm. Default: "md5"
         :param attributes:      Attributes to apply on the CSR. Valid params: C, ST, L, O, OU and CN
         :return:
         """
-        public_key = CertificateManager.create_key_pair(crypto.TYPE_RSA, 2048)
+        # public_key = CertificateManager.create_key_pair(crypto.TYPE_RSA, 2048)
         csr = crypto.X509Req()
         subject = csr.get_subject()
 
@@ -31,8 +31,8 @@ class CertificateManager:
             else:
                 raise ValueError("Invalid attribute provided for CSR. Permitted keys: C, ST, L, O, OU and CN.")
 
-        csr.set_pubkey(public_key)
-        csr.sign(public_key, digest)
+        csr.set_pubkey(key_pair)
+        csr.sign(key_pair, digest)
 
         return csr
 
@@ -40,7 +40,8 @@ class CertificateManager:
     def create_cert(csr, serial_number, issuer_cert, issuer_key, not_before=0, not_after=default_validity,
                     digest="md5"):
         """
-        :param csr:             The certificate signing request (CSR) on which to base the certificate.
+        Generate a certificate based on the provided certificate signing request (CSR).
+        :param csr:             The CSR on which to base the certificate.
         :param serial_number:   Serial number to apply for the certificate.
         :param issuer_cert:     Certificate for the party issuing the certificate (typically CA or RA certificate).
         :param issuer_key:      Private key for the issuer.
@@ -53,7 +54,7 @@ class CertificateManager:
         cert.set_serial_number(serial_number)
         cert.gmtime_adj_notBefore(not_before)
         cert.gmtime_adj_notAfter(not_after)
-        cert.set_issuer(issuer_cert.getSubject())
+        cert.set_issuer(issuer_cert.get_subject())
         cert.set_pubkey(csr.get_pubkey())
         cert.sign(issuer_key, digest)
         return cert
@@ -75,10 +76,18 @@ class CertificateManager:
         cert.set_serial_number(serial_number)
         cert.gmtime_adj_notBefore(not_before)
         cert.gmtime_adj_notAfter(not_after)
-        cert.set_issuer(csr.get_subject)
+        cert.set_issuer(csr.get_subject())
         cert.set_pubkey(csr.get_pubkey())
         cert.sign(private_key, digest)
         return cert
+
+    @staticmethod
+    def get_cert_path(file_name):
+        return os.path.join(CertificateManager.certs_dir, file_name)
+
+    @staticmethod
+    def cert_file_exists(file_name):
+        return os.path.isfile(CertificateManager.get_cert_path(file_name))
 
     @staticmethod
     def create_key_pair(key_type, key_size):
@@ -127,3 +136,13 @@ class CertificateManager:
         file_path = os.path.join(CertificateManager.certs_dir, file_name)
         print("Saving private key to " + file_path)
         open(file_path, "w").write((crypto.dump_privatekey(crypto.FILETYPE_PEM, pkey)))
+
+    @staticmethod
+    def load_cert(file_name):
+        cert_file = open(CertificateManager.get_cert_path(file_name), "rt").read()
+        return crypto.load_certificate(crypto.FILETYPE_PEM, cert_file)
+
+    @staticmethod
+    def load_pkey(file_name):
+        pkey_file = open(CertificateManager.get_cert_path(file_name), "rt").read()
+        return crypto.load_privatekey(crypto.FILETYPE_PEM, pkey_file)

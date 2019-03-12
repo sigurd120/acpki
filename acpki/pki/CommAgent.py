@@ -12,7 +12,7 @@ class CommAgent:
     def __init__(self):
         self.private_key = None
         self.certificate = None
-        self.ca_certificate = None
+        self.ca_certificate = CertificateManager.get_cert_path("ca.cert")
 
         self.client_addr = "127.0.0.1"
         self.client_port = 13150
