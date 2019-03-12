@@ -1,6 +1,5 @@
-from acpki.ACIAdapter import ACIAdapter
-from acpki.pki.CertificateManager import CertificateManager
 from OpenSSL import crypto
+from acpki.pki import Server, Client, CertificateManager
 
 
 class Main:
@@ -11,16 +10,23 @@ class Main:
         self.client_cert = None
         self.server_cert = None
         self.setup_completed = False
-        self.initial_setup()
+
+        self.client = None
+        self.server = None
 
     def run(self):
-        pass
+        # Set up certificates, client and server
+        self.initial_setup()
+        self.server = Server()
+        self.client = Client()
 
     def initial_setup(self):
         """
         This loads the required certificates from the files in the certs/ directory. If the files do not exist, it
-        creates them using CertificateManager and saves the files for future use. 
+        creates them using CertificateManager and saves the files for future use.
         """
+        print("Setting up certificates...")
+
         # Create CA certificate
         if CertificateManager.cert_file_exists("ca.cert") and CertificateManager.cert_file_exists("ca.pkey"):
             print("Loading existing CA certificate from file")
@@ -35,7 +41,7 @@ class Main:
             CertificateManager.save_cert(ca_cert, "ca.cert")
 
         # Create client certificate
-        if CertificateManager.cert_file_exists("client.cert"):
+        if CertificateManager.cert_file_exists("client.cert") and CertificateManager.cert_file_exists("client.pkey"):
             print("Loading existing client certificate from file")
             client_cert = CertificateManager.load_cert("client.cert")
         else:
@@ -44,9 +50,10 @@ class Main:
             csr = CertificateManager.create_csr(client_key_pair, C="NO", ST="Oslo", O="Corp", OU="abc123")
             client_cert = CertificateManager.create_cert(csr, 1, ca_cert, ca_key_pair)
             CertificateManager.save_cert(client_cert, "client.cert")
+            CertificateManager.save_pkey(client_key_pair, "client.pkey")
 
         # Create server certificate
-        if CertificateManager.cert_file_exists("server.cert"):
+        if CertificateManager.cert_file_exists("server.cert") and CertificateManager.cert_file_exists("server.pkey"):
             print("Loading existing server certificate from file")
             server_cert = CertificateManager.load_cert("server.cert")
         else:
@@ -55,12 +62,12 @@ class Main:
             csr = CertificateManager.create_csr(server_key_pair, C="NO", ST="Oslo", O="Corp", OU="abc321")
             server_cert = CertificateManager.create_cert(csr, 1, ca_cert, ca_key_pair)
             CertificateManager.save_cert(server_cert, "server.cert")
+            CertificateManager.save_pkey(server_key_pair, "server.pkey")
 
         self.ca_cert = ca_cert
         self.client_cert = client_cert
         self.server_cert = server_cert
         self.setup_completed = True
-
 
 
 if __name__ == "__main__":

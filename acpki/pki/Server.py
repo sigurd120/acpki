@@ -46,13 +46,13 @@ class Server(CommAgent):
     def listen(self):
         while True:
             try:
-                r,w,_ = select.select([self.connection]+self.clients.keys(), self.writers.keys(), [])
+                r, w, _ = select.select([self.connection]+self.clients.keys(), self.writers.keys(), [])
             except:
                 break
 
             for cli in r:
                 if cli == self.connection:
-                    cli,addr = self.connection.accept()
+                    cli, addr = self.connection.accept()
                     print("Connection from %s" % addr)
                     self.clients[cli] = addr
                 else:
