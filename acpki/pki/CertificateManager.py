@@ -8,7 +8,7 @@ class CertificateManager:
     the examples provided in pyOpenSSL.
     """
     default_validity = 31536000  # One year (3600 * 24 * 365)
-    certs_dir = os.path.abspath("./acpki/pki/certs")  # Relative to Main.py
+    certs_dir = os.path.abspath("./certs")  # Relative to pki directory
 
     def __init__(self):
         pass
