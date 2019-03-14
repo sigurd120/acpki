@@ -5,6 +5,9 @@ from acpki.pki import CommAgent, CertificateManager
 
 
 class Server(CommAgent):
+    """
+    This simple Server class accepts Client connections and echoes back messages that it receives.
+    """
     def __init__(self):
         self.private_key = "server.pkey"
         self.certificate = "server.cert"
@@ -36,17 +39,21 @@ class Server(CommAgent):
         context = SSL.Context(SSL.TLSv1_2_METHOD)
         context.set_options(SSL.OP_NO_TLSv1_2)
         context.set_verify(SSL.VERIFY_PEER|SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self.ssl_verify_cb)
-        context.use_privatekey_file(CertificateManager.get_cert_path(self.private_key))
-        context.use_certificate_file(CertificateManager.get_cert_path(self.certificate))
-        context.load_verify_locations(CertificateManager.get_cert_path(self.ca_certificate))
+        try:
+            context.use_privatekey_file(CertificateManager.get_cert_path(self.private_key))
+            context.use_certificate_file(CertificateManager.get_cert_path(self.certificate))
+            context.load_verify_locations(CertificateManager.get_cert_path(self.ca_certificate))
+        except SSL.Error as error:
+            print("Error: Could not load key and certificate files. Please make sure that you have run the setup.py"
+                  "script before starting Server.py.")
         return context
 
     def drop_client(self, cli, errors=None):
         if errors:
-            print("Connection with client %s was closed unexpectedly.")
-            print(errors)
+            print("Connection with client {0} was closed unexpectedly.".format(self.clients[cli]))
+            # print(errors)
         else:
-            print("Client %s closed the connection" % self.clients[cli][0])
+            print("Client {0} closed the connection.".format(self.clients[cli]))
         del self.clients[cli]
         if self.writers.has_key(cli):
             del self.writers[cli]
@@ -69,7 +76,7 @@ class Server(CommAgent):
             for cli in r:
                 if cli == self.connection:
                     cli, addr = self.connection.accept()
-                    print("Connection from {0}".format(addr))
+                    print("Connection established with {0}:{1}".format(addr[0], addr[1]))
                     self.clients[cli] = addr
                 else:
                     try:

@@ -1,5 +1,5 @@
 import sys
-from socket import SOCK_STREAM, socket, AF_INET
+from socket import SOCK_STREAM, socket, AF_INET, error as SocketError
 from OpenSSL import SSL
 from acpki.pki import CommAgent, CertificateManager
 from acpki.util.custom_exceptions import *
@@ -25,6 +25,10 @@ class Client(CommAgent):
             self.connection.connect((self.serv_addr, self.serv_port))  # Setup connection and TLS
         except SSL.Error as error:
             print("SSL error: " + error)
+            sys.exit(1)
+        except SocketError:
+            print("Connection refused. Please check that the server is running and that the address and port are "
+                  "correct.")
             sys.exit(1)
         else:
             print("Connected successfully to server.")
