@@ -38,7 +38,7 @@ class CertificateManager:
 
     @staticmethod
     def create_cert(csr, serial_number, issuer, issuer_key, ca=False, not_before=0, not_after=default_validity,
-                    digest="md5"):
+                    digest="sha256"):
         """
         Generate a certificate based on the provided certificate signing request (CSR).
         :param csr:             The CSR on which to base the certificate.
@@ -53,6 +53,7 @@ class CertificateManager:
         """
         cert = crypto.X509()
         cert.set_serial_number(serial_number)
+        cert.set_subject(csr.get_subject())
         cert.gmtime_adj_notBefore(not_before)
         cert.gmtime_adj_notAfter(not_after)
         cert.set_issuer(issuer)
@@ -70,13 +71,14 @@ class CertificateManager:
             ])
 
         cert.sign(issuer_key, digest)
+
         return cert
 
     @staticmethod
-    def create_self_signed_cert(csr, private_key, serial_number, ca=False, not_before=0, not_after=default_validity,
-                                digest="md5"):
+    def create_self_signed_cert(csr, private_key, serial_number, not_before=0, not_after=default_validity,
+                                digest="sha256"):
         """
-
+        Generate a self signed certificate for the root CA.
         :param csr:             The certificate signing request (CSR) on which to base the certificate.
         :param private_key:     Private key that corresponds with the CSR public key.
         :param serial_number:   Serial number to apply for the certificate.
@@ -85,7 +87,7 @@ class CertificateManager:
         :param digest:          Digest hashing algorithm. Default: "md5"
         :return:                The certificate that was just created. None if creation failed.
         """
-        return CertificateManager.create_cert(csr, serial_number, csr.get_subject(), private_key, ca, not_before,
+        return CertificateManager.create_cert(csr, serial_number, csr.get_subject(), private_key, True, not_before,
                                               not_after, digest)
 
     @staticmethod

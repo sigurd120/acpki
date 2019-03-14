@@ -36,9 +36,13 @@ class Server(CommAgent):
         context = SSL.Context(SSL.TLSv1_2_METHOD)
         context.set_options(SSL.OP_NO_TLSv1_2)
         context.set_verify(SSL.VERIFY_PEER|SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self.ssl_verify_cb)
-        context.use_privatekey_file(CertificateManager.get_cert_path(self.private_key))
-        context.use_certificate_file(CertificateManager.get_cert_path(self.certificate))
-        context.load_verify_locations(CertificateManager.get_cert_path(self.ca_certificate))
+        try:
+            context.use_privatekey_file(CertificateManager.get_cert_path(self.private_key))
+            context.use_certificate_file(CertificateManager.get_cert_path(self.certificate))
+            context.load_verify_locations(CertificateManager.get_cert_path(self.ca_certificate))
+        except SSL.Error as error:
+            print("Error: Could not load key and certificate files. Please make sure that you have run the setup.py"
+                  "script before starting Server.py.")
         return context
 
     def drop_client(self, cli, errors=None):

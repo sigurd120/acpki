@@ -12,7 +12,7 @@ else:
     print("Generating CA certificate")
     ca_key_pair = CertificateManager.create_key_pair(crypto.TYPE_RSA, 2048)
     csr = CertificateManager.create_csr(ca_key_pair, C="NO", ST="Oslo", O="Corp", OU="Blab")
-    ca_cert = CertificateManager.create_self_signed_cert(csr, ca_key_pair, 0, ca=True)
+    ca_cert = CertificateManager.create_self_signed_cert(csr, ca_key_pair, 0)
     CertificateManager.save_pkey(ca_key_pair, "ca.pkey")
     CertificateManager.save_cert(ca_cert, "ca.cert")
 
