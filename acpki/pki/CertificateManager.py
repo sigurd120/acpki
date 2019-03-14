@@ -37,14 +37,15 @@ class CertificateManager:
         return csr
 
     @staticmethod
-    def create_cert(csr, serial_number, issuer_cert, issuer_key, not_before=0, not_after=default_validity,
+    def create_cert(csr, serial_number, issuer, issuer_key, ca=False, not_before=0, not_after=default_validity,
                     digest="md5"):
         """
         Generate a certificate based on the provided certificate signing request (CSR).
         :param csr:             The CSR on which to base the certificate.
         :param serial_number:   Serial number to apply for the certificate.
-        :param issuer_cert:     Certificate for the party issuing the certificate (typically CA or RA certificate).
+        :param issuer:          The subject issuing the certificate
         :param issuer_key:      Private key for the issuer.
+        :param ca               Certificate is issued to a CA (boolean)
         :param not_before:      Seconds from now when certificate should become valid.
         :param not_after:       Seconds from now when certificate should become invalid.
         :param digest:          Digest hashing algorithm. Default: "md5"
@@ -54,13 +55,25 @@ class CertificateManager:
         cert.set_serial_number(serial_number)
         cert.gmtime_adj_notBefore(not_before)
         cert.gmtime_adj_notAfter(not_after)
-        cert.set_issuer(issuer_cert.get_subject())
+        cert.set_issuer(issuer)
         cert.set_pubkey(csr.get_pubkey())
+
+        if ca:
+            cert.add_extensions([
+                crypto.X509Extension(b"basicConstraints", True, b"CA:true,pathlen:1"),
+                crypto.X509Extension(b"keyUsage", True, b"keyCertSign"),
+                crypto.X509Extension(b"extendedKeyUsage", False, b"clientAuth,serverAuth")
+            ])
+        else:
+            cert.add_extensions([
+                crypto.X509Extension(b"extendedKeyUsage", False, b"clientAuth,serverAuth")
+            ])
+
         cert.sign(issuer_key, digest)
         return cert
 
     @staticmethod
-    def create_self_signed_cert(csr, private_key, serial_number, not_before=0, not_after=default_validity,
+    def create_self_signed_cert(csr, private_key, serial_number, ca=False, not_before=0, not_after=default_validity,
                                 digest="md5"):
         """
 
@@ -72,14 +85,8 @@ class CertificateManager:
         :param digest:          Digest hashing algorithm. Default: "md5"
         :return:                The certificate that was just created. None if creation failed.
         """
-        cert = crypto.X509()
-        cert.set_serial_number(serial_number)
-        cert.gmtime_adj_notBefore(not_before)
-        cert.gmtime_adj_notAfter(not_after)
-        cert.set_issuer(csr.get_subject())
-        cert.set_pubkey(csr.get_pubkey())
-        cert.sign(private_key, digest)
-        return cert
+        return CertificateManager.create_cert(csr, serial_number, csr.get_subject(), private_key, ca, not_before,
+                                              not_after, digest)
 
     @staticmethod
     def get_cert_path(file_name):

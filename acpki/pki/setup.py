@@ -12,7 +12,7 @@ else:
     print("Generating CA certificate")
     ca_key_pair = CertificateManager.create_key_pair(crypto.TYPE_RSA, 2048)
     csr = CertificateManager.create_csr(ca_key_pair, C="NO", ST="Oslo", O="Corp", OU="Blab")
-    ca_cert = CertificateManager.create_self_signed_cert(csr, ca_key_pair, 0)
+    ca_cert = CertificateManager.create_self_signed_cert(csr, ca_key_pair, 0, ca=True)
     CertificateManager.save_pkey(ca_key_pair, "ca.pkey")
     CertificateManager.save_cert(ca_cert, "ca.cert")
 
@@ -24,7 +24,7 @@ else:
     print("Generating client certificate")
     client_key_pair = CertificateManager.create_key_pair(crypto.TYPE_RSA, 2048)
     csr = CertificateManager.create_csr(client_key_pair, C="NO", ST="Oslo", O="Corp", OU="abc123")
-    client_cert = CertificateManager.create_cert(csr, 1, ca_cert, ca_key_pair)
+    client_cert = CertificateManager.create_cert(csr, 1, ca_cert.get_subject(), ca_key_pair)
     CertificateManager.save_cert(client_cert, "client.cert")
     CertificateManager.save_pkey(client_key_pair, "client.pkey")
 
@@ -36,6 +36,6 @@ else:
     print("Generating server certificate")
     server_key_pair = CertificateManager.create_key_pair(crypto.TYPE_RSA, 2048)
     csr = CertificateManager.create_csr(server_key_pair, C="NO", ST="Oslo", O="Corp", OU="abc321")
-    server_cert = CertificateManager.create_cert(csr, 2, ca_cert, ca_key_pair)
+    server_cert = CertificateManager.create_cert(csr, 2, ca_cert.get_subject(), ca_key_pair)
     CertificateManager.save_cert(server_cert, "server.cert")
     CertificateManager.save_pkey(server_key_pair, "server.pkey")
