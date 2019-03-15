@@ -45,9 +45,17 @@ class Client(CommAgent):
 
     @property
     def connected(self):
+        """
+        Return the connection status.
+        :return: Connection status (True or False)
+        """
         return self.connection is not None
 
     def get_context(self):
+        """
+        Get the client SSL context using the configured certificates and private key.
+        :return: SSL Context object
+        """
         context = SSL.Context(SSL.TLSv1_2_METHOD)
         context.set_verify(SSL.VERIFY_PEER, self.ssl_verify_cb)
         context.use_privatekey_file(CertificateManager.get_cert_path(self.private_key))
@@ -56,7 +64,8 @@ class Client(CommAgent):
         return context
 
     def accept_input(self):
-        print("You can now start typing input data to send it to the server. Send an empty line or type exit to stop.")
+        print("You can now start typing input data to send it to the server. Send an empty line or type exit to end "
+              "the connection politely.")
         while True:
             line = sys.stdin.readline()
             if line == "" or line == "exit":
