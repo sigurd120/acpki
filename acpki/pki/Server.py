@@ -1,4 +1,4 @@
-import sys, socket, select
+import sys, socket, select, atexit
 from OpenSSL import SSL
 from acpki.util.custom_exceptions import *
 from acpki.pki import CommAgent, CertificateManager
@@ -18,6 +18,7 @@ class Server(CommAgent):
         self.clients = {}
         self.writers = {}  # TODO: Required? What is this?
 
+        atexit.register(self.shutdown)
         super(Server, self).__init__()
 
     def server_setup(self):
@@ -26,6 +27,7 @@ class Server(CommAgent):
         try:
             self.connection = SSL.Connection(self.context, socket.socket(socket.AF_INET, socket.SOCK_STREAM))
             self.connection.bind((self.serv_addr, self.serv_port))
+            self.connection.set_accept_state()
             self.connection.listen(3)
             self.connection.setblocking(0)
         except SSL.Error:
@@ -35,20 +37,39 @@ class Server(CommAgent):
             print("Server was successfully set up.")
             self.listen()
 
+    def shutdown(self):
+        print("Server is shutting down...")
+        if self.connection is not None:
+            self.connection.close()
+            self.connection = None
+            print("Connection closed")
+
     def get_context(self):
         context = SSL.Context(SSL.TLSv1_2_METHOD)
         context.set_options(SSL.OP_NO_TLSv1_2)
         context.set_verify(SSL.VERIFY_PEER|SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self.ssl_verify_cb)
+        context.set_ocsp_server_callback(self.ocsp_server_callback)
         try:
             context.use_privatekey_file(CertificateManager.get_cert_path(self.private_key))
             context.use_certificate_file(CertificateManager.get_cert_path(self.certificate))
             context.load_verify_locations(CertificateManager.get_cert_path(self.ca_certificate))
-        except SSL.Error as error:
+        except SSL.Error:
             print("Error: Could not load key and certificate files. Please make sure that you have run the setup.py"
                   "script before starting Server.py.")
         return context
 
+    @staticmethod
+    def ocsp_server_callback(conn, data=None):
+        print("OCSP server callback")
+        print(data)
+        return True
+
     def drop_client(self, cli, errors=None):
+        """
+        Drop a server client, intentionally or unexpectedly.
+        :param cli:         The client to drop
+        :param errors:      Errors associated with the drop (optional)
+        """
         if errors:
             print("Connection with client {0} was closed unexpectedly.".format(self.clients[cli]))
             # print(errors)

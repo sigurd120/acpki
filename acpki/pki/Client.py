@@ -17,18 +17,24 @@ class Client(CommAgent):
 
         super(Client, self).__init__()
 
-    def connect(self):
+    def connect(self, request_ocsp=True):
         if self.context is None:
             raise ConfigError("Client setup failed because context was undefined.")
         try:
-            self.connection = SSL.Connection(self.context, socket(AF_INET, SOCK_STREAM))
-            self.connection.connect((self.serv_addr, self.serv_port))  # Setup connection and TLS
+            # Try to establish a TLS connection
+            conn = SSL.Connection(self.context, socket(AF_INET, SOCK_STREAM))
+            conn.connect((self.serv_addr, self.serv_port))  # Setup connection and TLS
+            if request_ocsp:
+                conn.request_ocsp()
+            self.connection = conn
         except SSL.Error as error:
             print("SSL error: " + error)
+            self.connection = None
             sys.exit(1)
         except SocketError:
             print("Connection refused. Please check that the server is running and that the address and port are "
                   "correct.")
+            self.connection = None
             sys.exit(1)
         else:
             print("Connected successfully to server.")
@@ -61,7 +67,14 @@ class Client(CommAgent):
         context.use_privatekey_file(CertificateManager.get_cert_path(self.private_key))
         context.use_certificate_file(CertificateManager.get_cert_path(self.certificate))
         context.load_verify_locations(CertificateManager.get_cert_path(self.ca_certificate))
+        context.set_ocsp_client_callback(self.ocsp_client_callback, data=1)
         return context
+
+    @staticmethod
+    def ocsp_client_callback(conn, ocsp, data=None):
+        print("OCSP callback")
+        print(data)
+        return True
 
     def accept_input(self):
         print("You can now start typing input data to send it to the server. Send an empty line or type exit to end "
