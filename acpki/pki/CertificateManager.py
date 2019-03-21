@@ -91,8 +91,11 @@ class CertificateManager:
                                               not_after, digest)
 
     @staticmethod
-    def get_cert_path(file_name):
-        return os.path.join(CertificateManager.certs_dir, file_name)
+    def get_cert_path(file_name=None):
+        if file_name:
+            return os.path.join(CertificateManager.certs_dir, file_name)
+        else:
+            return CertificateManager.certs_dir
 
     @staticmethod
     def cert_file_exists(file_name):

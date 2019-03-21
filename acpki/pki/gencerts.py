@@ -1,7 +1,19 @@
 from OpenSSL import crypto
 from acpki.pki import CertificateManager
+import os
+
+"""
+This file creates the basic certificates needed to use the AC-PKI system. The program should be called from the general
+config script. If files already exist, this script WILL NOT replace them by default. Note that certificate files ARE NOT
+shared via Git and will therefore need to be created on each individual system. 
+"""
 
 print("Setting up certificates...")
+
+# Create certs directory if it does not already exist
+if not os.path.exists(CertificateManager.get_cert_path()):
+    os.makedirs(CertificateManager.get_cert_path())
+    print("Created certs directory")
 
 # Create CA certificate
 if CertificateManager.cert_file_exists("ca.cert") and CertificateManager.cert_file_exists("ca.pkey"):
