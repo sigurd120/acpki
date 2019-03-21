@@ -62,7 +62,7 @@ class Server(CommAgent):
     def ocsp_server_callback(conn, data=None):
         print("OCSP server callback")
         print(data)
-        return True
+        return b"This is a byte string"
 
     def drop_client(self, cli, errors=None):
         """

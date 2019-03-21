@@ -17,10 +17,12 @@ if not os.path.exists(CertificateManager.get_cert_path()):
 
 # Create CA certificate
 if CertificateManager.cert_file_exists("ca.cert") and CertificateManager.cert_file_exists("ca.pkey"):
+    # Load existing
     print("Loading existing CA certificate from file")
     ca_cert = CertificateManager.load_cert("ca.cert")
     ca_key_pair = CertificateManager.load_pkey("ca.pkey")
 else:
+    # Generate new
     print("Generating CA certificate")
     ca_key_pair = CertificateManager.create_key_pair(crypto.TYPE_RSA, 2048)
     csr = CertificateManager.create_csr(ca_key_pair, C="NO", ST="Oslo", O="Corp", OU="Blab")
@@ -30,9 +32,11 @@ else:
 
 # Create client certificate
 if CertificateManager.cert_file_exists("client.cert") and CertificateManager.cert_file_exists("client.pkey"):
+    # Load existing
     print("Loading existing client certificate from file")
     client_cert = CertificateManager.load_cert("client.cert")
 else:
+    # Generate new
     print("Generating client certificate")
     client_key_pair = CertificateManager.create_key_pair(crypto.TYPE_RSA, 2048)
     csr = CertificateManager.create_csr(client_key_pair, C="NO", ST="Oslo", O="Corp", OU="abc123")
@@ -42,9 +46,11 @@ else:
 
 # Create server certificate
 if CertificateManager.cert_file_exists("server.cert") and CertificateManager.cert_file_exists("server.pkey"):
+    # Load existing
     print("Loading existing server certificate from file")
     server_cert = CertificateManager.load_cert("server.cert")
 else:
+    # Generate new
     print("Generating server certificate")
     server_key_pair = CertificateManager.create_key_pair(crypto.TYPE_RSA, 2048)
     csr = CertificateManager.create_csr(server_key_pair, C="NO", ST="Oslo", O="Corp", OU="abc321")
