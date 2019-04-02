@@ -45,7 +45,7 @@ class OCSPResponder:
                         found = True
                 f.truncate()
         except IOError as e:
-            print("Error: Could not unrevoke certificate: {0}".format(e))
+            print("Error: Could not unrevoke certificate \"{0}\": {1}".format(serial_number, e))
 
         if found:
             print("Successfully unrevoked the certificate \"{0}\"".format(serial_number))

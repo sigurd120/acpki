@@ -1,5 +1,6 @@
 # AC-PKI files that should not be shared
 acpki/pki/certs/*
+acpki/aci/private/*
 
 # Other files and directories
 .idea/

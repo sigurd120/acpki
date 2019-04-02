@@ -521,7 +521,7 @@ class Session(object):
             # Disable the warnings for SSL
             if not verify_ssl:
                 try:
-                    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+                    requests.urllib3.disable_warnings(InsecureRequestWarning)
                 except (AttributeError, NameError):
                     pass
             with open(self.key, 'r') as f:
