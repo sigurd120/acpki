@@ -22,3 +22,6 @@ jsonschema
 graphviz
 ipaddress
 deepdiff <= 3.3.0
+
+# SNI requirement
+idna
