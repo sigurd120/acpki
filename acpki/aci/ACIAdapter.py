@@ -1,8 +1,4 @@
-import json, requests
-from requests.auth import HTTPBasicAuth
-from requests.cookies import RequestsCookieJar
-from acitoolkit import acitoolkit
-from acpki.util.custom_exceptions import InvalidTokenError
+import time
 from acpki.aci import ACISession
 
 
@@ -22,3 +18,5 @@ class ACIAdapter:
 
 if __name__ == "__main__":
     aciadapter = ACIAdapter()
+    time.sleep(10)
+    aciadapter.session.get("mo/uni/tn-Heroes", subscribe=True)

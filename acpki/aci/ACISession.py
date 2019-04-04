@@ -1,8 +1,8 @@
 import requests, pickle, sys, os, json, thread, time
 import urllib3
 import websocket
-from acpki.util.custom_exceptions import SessionError
-from acpki.aci import Subscriber
+from acpki.util.custom_exceptions import SessionError, SubscriptionError
+from acpki.aci import Subscriber, Subscription
 
 
 class ACISession:
@@ -11,27 +11,36 @@ class ACISession:
     subscriptions with the APIC.
     """
     def __init__(self, sub_cb=None, verbose=False):
+        """
+        Constructor for the ACISession class.
+        :param sub_cb:      Callback method for subscriptions - if not provided subscriptions are disabled for session
+        :param verbose:     Verbose mode (provides more output)
+        """
         # Configuration
+        self.secure = True
+        self.connected = False
+        self.verbose = verbose
         self.apic_base_url = "sandboxapicdc.cisco.com"
-        self.apic_web_url = "https://" + self.apic_base_url
+        self.apic_web_url = self.get_web_url(self.apic_base_url)
+        self.sub_cb = sub_cb
+
         self.username = "admin"
         self.password = "ciscopsdt"
         self.cookie_file = "private/cookie.txt"
         self.token_file = "private/token.txt"
+
+        # Set initial values
         self.crt_file = None
         self.token = None
         self.session = None
-        self.subscription = None
-        self.connected = False
-        self.verbose = verbose
-        self.secure = True
+        self.subscriber = None
 
         # Setup and connect
         self.setup()
         self.connect()
 
+        # Initiate Subscriber object
         if sub_cb is not None:
-            # Subscribe
             self.subscriber = Subscriber(self, sub_cb)
 
     def setup(self):
@@ -45,7 +54,20 @@ class ACISession:
     def get_method_path(self, method, file_format="json"):
         return self.apic_web_url + "/api/" + method + "." + file_format
 
-    def connect(self, subscribe=False, force_auth=False):
+    def get_web_url(self, base_url):
+        if self.secure:
+            prefix = "https://"
+        else:
+            prefix = "http://"
+        return prefix + base_url
+
+    def connect(self, force_auth=False):
+        """
+        Standard method for connecting with the APIC. Attempts to resume session based on the stored session cookie. If
+        the cookie does not exist or has expired it authenticates.
+        :param force_auth:  Will not attempt to resume session, and authenticate even with a valid session cookie
+        :return:
+        """
         if not force_auth and self.resume_session():
             # Resumed session from cookie
             print("Successfully resumed saved session.")
@@ -57,8 +79,6 @@ class ACISession:
             if not res.ok:
                 print("Could not log in... Please check the above status code.")
                 sys.exit(1)
-            elif subscribe:
-                self.subscription = Subscriber(self.get_ws_url(), self.token)
 
     def resume_session(self):
         """
@@ -66,6 +86,7 @@ class ACISession:
         file. Otherwise, it will authenticate and create a new session.
         :return:    True if successful, False otherwise
         """
+        # Load cookies
         if self.cookie_file and os.path.exists(self.cookie_file):
             # Load cookies from file
             session = requests.session()
@@ -73,11 +94,24 @@ class ACISession:
                 session.cookies.update(pickle.load(f))
 
             self.session = session
-            return self.check_connection()
+        else:
+            # Abort session resumption
+            return False
+
+        # Load token
+        if self.token_file and os.path.exists(self.token_file):
+            with open(self.token_file, "r") as f:
+                self.token = f.readline()
+        else:
+            # Abort session resumption
+            return False
+
+        return self.check_connection()
 
     def authenticate(self):
         """
-        Authenticate with the APIC. This method should not be called directly.
+        Authenticate with the APIC. This method should not be called directly, use connect() instead as it allows for
+        optional session resumption.
         :return:
         """
         # Prepare and send auth request
@@ -126,7 +160,7 @@ class ACISession:
             print("Connection status: {0} {1}".format(resp.status_code, resp.reason))
         return self.connected
 
-    def get(self, method, file_format=None, silent=False):
+    def get(self, method, file_format=None, silent=False, subscribe=False):
         """
         Get method that adds the necessary parameters and URL.
         :param method:          ACI method name, i.e. what is following apic-url/api/, excluding .json and .xml
@@ -134,19 +168,49 @@ class ACISession:
         :param silent:          Packet will be sent silently, overriding self.verbose
         :return:                A requests response object
         """
+        # Get file format
         if file_format is None:
             path = self.get_method_path(method)
         else:
             path = self.get_method_path(method, file_format)
 
+        # Get keyword arguments as GET parameters
+        params = {}
+        if subscribe:
+            params["subscribe"] = "yes"
+
+        if len(params.keys()) > 0:
+            path += ACISession.dict_to_get(params)
+
+        # Check current session
         if self.session is None:
             raise SessionError("Cannot send GET request without a session!")
 
+        if subscribe and self.subscriber is None:
+            raise SubscriptionError("Could not subscribe as no Subscriber was found for session.")
+
+        # Analyse and print response (if verbose mode)
         resp = self.session.get(path, verify=False)
         if self.verbose and not silent:
             print("GET {0}".format(path))
             print("Reponse: {0} {1}".format(resp.status_code, resp.reason))
+
+        # Create subscription
+        if subscribe and resp.ok:
+            if self.verbose:
+                print("Creating new subscription")
+            json_resp = json.loads(resp)
+            self.subscriber.subscribe(json_resp["subscriptionId"], method)
+
         return resp
+
+    @staticmethod
+    def dict_to_get(dict):
+        ret = ""
+        for i, key in enumerate(dict.keys()):
+            ret += "?" if i == 0 else "&"
+            ret += key + "=" + dict[key]
+        return ret
 
     @staticmethod
     def extract_token(response):
