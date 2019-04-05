@@ -160,6 +160,9 @@ class ACISession:
             print("Connection status: {0} {1}".format(resp.status_code, resp.reason))
         return self.connected
 
+    def get_cookies(self):
+        return self.session.cookies
+
     def get(self, method, file_format=None, silent=False, subscribe=False):
         """
         Get method that adds the necessary parameters and URL.
@@ -177,7 +180,7 @@ class ACISession:
         # Get keyword arguments as GET parameters
         params = {}
         if subscribe:
-            params["subscribe"] = "yes"
+            params["subscription"] = "yes"
 
         if len(params.keys()) > 0:
             path += ACISession.dict_to_get(params)
@@ -199,7 +202,7 @@ class ACISession:
         if subscribe and resp.ok:
             if self.verbose:
                 print("Creating new subscription")
-            json_resp = json.loads(resp)
+            json_resp = json.loads(resp.content)
             self.subscriber.subscribe(json_resp["subscriptionId"], method)
 
         return resp
