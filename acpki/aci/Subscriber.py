@@ -34,26 +34,29 @@ class Subscriber:
 
         # Create websocket
         print("Establishing websocket connection with the APIC...")
-        ws = websocket.WebSocket(sslopt=options)
+        self.ws = websocket.WebSocket(sslopt=options)
 
         # Connect
         # TODO: Find out what errors this can cause and catch them.
-        ws.connect(self.url)
+        self.ws.connect(self.url)
         print("Websocket connected successfully.")
         self.connected = True
 
         # Create WS work thread
-        self.thread = threading.Thread(target=self.listen_beat, args=(ws))
-        self.thread.run()
+        self.thread = threading.Thread(target=self.listen)
+        self.thread.start()
 
-    def listen_beat(self, ws):
+        return
+
+    def listen(self):
         """
         Does NOT need to be called to listen. This is called automatically by the thread created in the connect()
         method.
         :return:    Any data received from the work thread, None otherwise
         """
+        print("Thread opened, listening for updates from the APIC...")
         while True:
-            opcode, data = ws.recv_data()
+            opcode, data = self.ws.recv_data()
             print("WS-{0}: {1}".format(opcode, data))
             time.sleep(1)
 
