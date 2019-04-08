@@ -163,12 +163,13 @@ class ACISession:
     def get_cookies(self):
         return self.session.cookies
 
-    def get(self, method, file_format=None, silent=False, subscribe=False):
+    def get(self, method, file_format=None, silent=False, subscribe=False, **kwargs):
         """
         Get method that adds the necessary parameters and URL.
         :param method:          ACI method name, i.e. what is following apic-url/api/, excluding .json and .xml
         :param file_format:     Format of returned data, either "json", "xml" or None (default)
         :param silent:          Packet will be sent silently, overriding self.verbose
+        :param subscribe:       Subscribe to updates in the information queried, requires an active WebSocket
         :return:                A requests response object
         """
         # Get file format
@@ -178,19 +179,20 @@ class ACISession:
             path = self.get_method_path(method, file_format)
 
         # Get keyword arguments as GET parameters
-        params = {}
         if subscribe:
-            params["subscription"] = "yes"
+            kwargs["subscription"] = "yes"
 
-        if len(params.keys()) > 0:
-            path += ACISession.dict_to_get(params)
+        if len(kwargs.keys()) > 0:
+            path += ACISession.dict_to_get(kwargs)
 
-        # Check current session
+        # Check current session and subscription
         if self.session is None:
             raise SessionError("Cannot send GET request without a session!")
 
         if subscribe and self.subscriber is None:
-            raise SubscriptionError("Could not subscribe as no Subscriber was found for session.")
+            raise SubscriptionError("Could not subscribe as no Subscriber was found for session")
+        elif subscribe and not self.subscriber.connected:
+            raise SubscriptionError("Could not subscribe as Subscriber was disconnected.")
 
         # Analyse and print response (if verbose mode)
         resp = self.session.get(path, verify=False)
@@ -204,6 +206,7 @@ class ACISession:
                 print("Creating new subscription")
             json_resp = json.loads(resp.content)
             self.subscriber.subscribe(json_resp["subscriptionId"], method)
+            print(self.subscriber.subscriptions)
 
         return resp
 

@@ -1,7 +1,7 @@
 from acitoolkit import acitoolkit
 import websocket, ssl, time, thread, threading
 from acpki.aci import Subscription
-from ws_thread import WSThread
+from work_threads import WSThread, RefreshThread
 
 
 class Subscriber:
@@ -18,8 +18,11 @@ class Subscriber:
 
         # Initial setup
         self.url = self.get_ws_url(aci_session.apic_base_url)
+        self.session = aci_session
         self.ws = None
-        self.thread = None
+        self.ws_thread = None
+        self.refresh_thread = None
+        self.refresh_interval = 45
         self.connected = False
         self.subscriptions = []
 
@@ -41,6 +44,7 @@ class Subscriber:
         # TODO: Find out what errors this can cause and catch them.
 
         self.ws = websocket.WebSocket(sslopt=options)
+        self.ws.settimeout(60)
         self.ws.connect(self.url)
         print("Websocket connected successfully.")
         self.connected = True
@@ -54,8 +58,9 @@ class Subscriber:
         )
         """
 
-        # Create WS work thread
-        self.thread = WSThread(self.ws)
+        # Create WS work threads
+        self.ws_thread = WSThread(self.ws)
+        self.refresh_thread = RefreshThread(self.ws, self.refresh_subscriptions, self.refresh_interval)
 
         print("WS opened: {}".format(self.url))
 
@@ -65,30 +70,35 @@ class Subscriber:
         if self.verbose:
             print("Closing websocket...")
         self.ws.close()
-        self.thread.exit_thread()
+        self.ws_thread.exit_thread()
 
     def reconnect(self):
         self.disconnect()
         self.connect()
 
-    def beat(self):
-        """
-        DO NOT call this method directly. It should only be called by the thread established in the connect() method.
-        Contains all actions that need to be performed at a regular interval by the Subscriber class, including
-        listening for new data and refresh the session when needed.
-        :return:    Any data received from the work thread, None otherwise
-        """
-        print("Thread opened, listening for updates from the APIC...")
-        while True:
-            opcode, data = self.ws.recv_data()
-            print("WS-{0}: {1}".format(opcode, data))
-            time.sleep(1)
-
     def refresh_subscriptions(self):
-        raise NotImplementedError()
+        for subscription in self.subscriptions:
+            if self.verbose:
+                print("Refreshing subscription {}".format(subscription.sid))
+            if not isinstance(subscription, Subscription):
+                if self.verbose:
+                    raise SystemError("Encountered object inside Subscriber.subscriptions that was not of type "
+                                      "Subscription. I do not know what to do with that. ")
+            resp = self.session.get("subscriptionRefresh", id=subscription.sid)
+            if resp.ok:
+                print("Subscription {0} was successfully refreshed.".format(subscription.sid))
+            else:
+                print("Could not refresh session. Status: {0} {1}".format(resp.status_code, resp.reason))
 
-    def subscribe(self, id, method):
-        subscription = Subscription(id, method)
+    def subscribe(self, sid, method):
+        """
+        This method is called when a new subscription IS generated. To create a new subscription, use the
+        ACISession.get() method with subscription=True as an optional parameter.
+        :param sid:         Subscription ID of the generated subscription
+        :param method:      Method for which the subscription is created, i.e. what is following apic/api/...
+        :return:
+        """
+        subscription = Subscription(sid, method)
         self.subscriptions.append(subscription)
 
     def unsubscribe(self, id):

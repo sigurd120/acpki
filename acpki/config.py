@@ -1,1 +1,3 @@
-CONFIG = {}
+CONFIG = {
+    ""
+}
