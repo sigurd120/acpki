@@ -1,7 +1,7 @@
 import requests, pickle, sys, os, json, thread, time
 import urllib3
 import websocket
-from acpki.util.custom_exceptions import SessionError, SubscriptionError
+from acpki.util.exceptions import SessionError, SubscriptionError
 from acpki.aci import Subscriber, Subscription
 
 
@@ -37,11 +37,6 @@ class ACISession:
 
         # Setup and connect
         self.setup()
-        self.connect()
-
-        # Initiate Subscriber object
-        if sub_cb is not None:
-            self.subscriber = Subscriber(self, sub_cb)
 
     def setup(self):
         # Disable certificate verification -- this is not provided by Cisco ACI
@@ -79,6 +74,15 @@ class ACISession:
             if not res.ok:
                 print("Could not log in... Please check the above status code.")
                 sys.exit(1)
+
+        if self.sub_cb is not None:
+            self.subscriber = Subscriber(self)
+
+    def disconnect(self):
+        if self.verbose:
+            print("Disconnecting...")
+        self.subscriber.disconnect()
+        self.connected = False
 
     def resume_session(self):
         """
@@ -206,7 +210,6 @@ class ACISession:
                 print("Creating new subscription")
             json_resp = json.loads(resp.content)
             self.subscriber.subscribe(json_resp["subscriptionId"], method)
-            print(self.subscriber.subscriptions)
 
         return resp
 

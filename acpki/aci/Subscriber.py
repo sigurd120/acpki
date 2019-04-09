@@ -2,19 +2,22 @@ from acitoolkit import acitoolkit
 import websocket, ssl, time, thread, threading
 from acpki.aci import Subscription
 from work_threads import WSThread, RefreshThread
+from acpki.util.exceptions import SubscriptionError
 
 
 class Subscriber:
-    ws = None
-
-    def __init__(self, aci_session, sub_cb):
+    def __init__(self, aci_session):
         # Get parameters from session
         self.token = aci_session.token
-        self.cookies = aci_session.get_cookies()
-        self.sub_cb = sub_cb
+        # self.cookies = aci_session.get_cookies()
+        self.sub_cb = aci_session.sub_cb
         self.secure = aci_session.secure
         self.crt_file = aci_session.crt_file
         self.verbose = aci_session.verbose
+
+        if self.sub_cb is None:
+            raise SubscriptionError("Subscriber can only be created if the session has the subscription callback method"
+                                    "defined (ACISession.sub_cb is not None).")
 
         # Initial setup
         self.url = self.get_ws_url(aci_session.apic_base_url)
@@ -48,18 +51,9 @@ class Subscriber:
         self.ws.connect(self.url)
         print("Websocket connected successfully.")
         self.connected = True
-        """
-        self.ws = websocket.WebSocketApp(
-            self.url,
-            on_data=self.on_data,
-            on_error=self.on_error,
-            on_close=self.on_close,
-            cookie=self.cookies
-        )
-        """
 
         # Create WS work threads
-        self.ws_thread = WSThread(self.ws)
+        self.ws_thread = WSThread(self.ws, self.sub_cb)
         self.refresh_thread = RefreshThread(self.ws, self.refresh_subscriptions, self.refresh_interval)
 
         print("WS opened: {}".format(self.url))
@@ -69,8 +63,24 @@ class Subscriber:
     def disconnect(self):
         if self.verbose:
             print("Closing websocket...")
+
+        if not self.connected:
+            print("You are not connected.")
+            return True
+
+        # Exit threads
+        self.ws_thread.stop()
+        self.ws_thread = None
+        self.refresh_thread.stop()
+        self.refresh_thread = None
+
+        # Clear subscriptions
+        self.subscriptions = []
+
+        # Clear websocket
         self.ws.close()
-        self.ws_thread.exit_thread()
+        self.connected = False
+        return True
 
     def reconnect(self):
         self.disconnect()

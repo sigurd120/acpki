@@ -1,4 +1,4 @@
-import time
+import sys, os, time
 from acpki.aci import ACISession
 
 
@@ -10,13 +10,27 @@ class ACIAdapter:
 
     def __init__(self):
         # Setup
-        self.session = ACISession(self.sub_cb, verbose=True)
+        self.session = ACISession(self.subscription_callback, verbose=True)
 
-    def sub_cb(self, data):
-        print(data)
+    def connect(self):
+        # Connect to APIC
+        self.session.connect()
+        time.sleep(3)
+        aciadapter.session.get("mo/uni/tn-acpki_prototype", subscribe=True)
+
+    def disconnect(self):
+        self.session.disconnect()
+
+    @staticmethod
+    def subscription_callback(opcode, data):
+        print("WebSocket {0}: {1}".format(opcode, data))
 
 
 if __name__ == "__main__":
     aciadapter = ACIAdapter()
-    time.sleep(10)
-    aciadapter.session.get("mo/uni/tn-Heroes", subscribe=True)
+    try:
+        aciadapter.connect()
+        time.sleep(3)
+    except KeyboardInterrupt:
+        print("Keyboard interrupt. Shutting down...")
+        aciadapter.disconnect()

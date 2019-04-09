@@ -1,51 +1,79 @@
 import time
 from threading import Thread
+from acpki.util.exceptions import SubscriptionError
 
 
-class WSThread(Thread):
-    def __init__(self, ws, sleep_length=1):
+class StoppableThread(Thread):
+    def __init__(self, start=True):  # TODO: Use the start parameter to something
+        super(StoppableThread, self).__init__()
+        self.running = False
+
+    def start(self):
+        super(StoppableThread, self).start()
+        self.running = True
+
+    def stop(self):
+        self.running = False
+
+
+class WSThread(StoppableThread):
+    def __init__(self, ws, callback, sleep_length=1, start=True):
         """
         Create a new WebSocket Thread.
         :param ws:              WebSocket
+        :param sub_cb:          Subscription callback method to which received data will be sent
         :param sleep_length:    Time to sleep between each check of the WebSocket
+        :param start:           Whether to start the thread upon creation
         """
-        Thread.__init__(self)
         self.deamon = True
         self.ws = ws
+        self.cb = callback
         self.sleep_length = float(sleep_length)
 
         self.updated = time.time()
+        super(WSThread, self).__init__(start=start)
+
         self.start()
 
     def run(self):
         while True:
             time.sleep(self.sleep_length)
-            opcode, data = self.ws.recv_data()
-            if opcode and data:
-                print("WS {0}: {1}".format(opcode, data))
-            else:
-                print("No data received")
+            if self.running:
+                opcode, data = self.ws.recv_data()
+                if opcode and data:
+                    self.cb(opcode, data)
 
 
-class RefreshThread(Thread):
-    def __init__(self, ws, refresh_cb, interval):
-        Thread.__init__(self)
+class RefreshThread(StoppableThread):
+    """
+    This thread class ensures that the WebSocket is refreshed at a regular interval.
+    """
+    def __init__(self, ws, refresh_cb, interval, start=True):
         self.ws = ws
         self.cb = refresh_cb
         self.sub_interval = interval
+
         self.ws_ttl = self.ws.gettimeout()
         self.updated = time.time()
 
-        print("Refresh thread created with interval {0} and WS TTL {1}".format(self.sub_interval, self.ws_ttl))
+        # Check time limits for errors
+        if self.ws_ttl < self.sub_interval:
+            raise SubscriptionError("WebSocket TTL cannot be shorter than refresh interval!")
+        elif self.ws_ttl < self.sub_interval - 5:
+            print("WARNING: Your subscription interval is less than 5 seconds below the WebSocket TTL. This could lead"
+                  "to a WebSocket expiration before it is refreshed.")
+
+        super(RefreshThread, self).__init__(start)
 
         self.start()
 
     def run(self):
         while True:
-            time_diff = time.time() - self.updated
-            if time_diff >= self.sub_interval:
-                self.cb()
-                self.updated = time.time()
-                print("Pinging WS to keep connection alive")
-                self.ws.ping()
+            if self.running:
+                time_diff = time.time() - self.updated
+                if time_diff >= self.sub_interval:
+                    self.cb()
+                    self.updated = time.time()
+                    print("Pinging WS to keep connection alive")
+                    self.ws.ping()
             time.sleep(1)

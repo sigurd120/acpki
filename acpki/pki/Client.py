@@ -2,7 +2,7 @@ import sys
 from socket import SOCK_STREAM, socket, AF_INET, error as SocketError
 from OpenSSL import SSL
 from acpki.pki import CommAgent, CertificateManager
-from acpki.util.custom_exceptions import *
+from acpki.util.exceptions import *
 
 
 class Client(CommAgent):

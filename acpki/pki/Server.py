@@ -1,6 +1,6 @@
 import sys, socket, select, atexit
 from OpenSSL import SSL
-from acpki.util.custom_exceptions import *
+from acpki.util.exceptions import *
 from acpki.pki import CommAgent, CertificateManager
 
 
