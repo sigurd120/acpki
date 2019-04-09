@@ -32,9 +32,7 @@ class ACIAdapter:
             "query-target": "children",
             "target-subtree-class": "fvAEPg",
             "query-target-filter": "eq(fvAEPg.isAttrBasedEPg,\"false\")",
-            "order-by": "fvAEPg.name|asc",
-            "page": 0,
-            "page-size": 15  # TODO: Find out how to get all EPGs at once...
+            "order-by": "fvAEPg.name|asc"
         }
 
         url = "node/mo/uni/tn-{0}/ap-{1}".format(self.tenant_name, self.ap_name)

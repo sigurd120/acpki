@@ -94,7 +94,7 @@ class Subscriber:
                 if self.verbose:
                     raise SystemError("Encountered object inside Subscriber.subscriptions that was not of type "
                                       "Subscription. I do not know what to do with that. ")
-            resp = self.session.get("subscriptionRefresh", id=subscription.sid)
+            resp = self.session.get("subscriptionRefresh", params={"id": subscription.sid})
             if resp.ok:
                 print("Subscription {0} was successfully refreshed.".format(subscription.sid))
             else:
