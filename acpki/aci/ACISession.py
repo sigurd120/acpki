@@ -167,13 +167,15 @@ class ACISession:
     def get_cookies(self):
         return self.session.cookies
 
-    def get(self, method, file_format=None, silent=False, subscribe=False, **kwargs):
+    def get(self, method, file_format=None, silent=False, subscribe=False, params={}):
         """
         Get method that adds the necessary parameters and URL.
         :param method:          ACI method name, i.e. what is following apic-url/api/, excluding .json and .xml
         :param file_format:     Format of returned data, either "json", "xml" or None (default)
         :param silent:          Packet will be sent silently, overriding self.verbose
         :param subscribe:       Subscribe to updates in the information queried, requires an active WebSocket
+        :param params:          Dictionary of GET parameters to add to URL, excluding "subscription" which is enabled by
+                                setting the "subscribe" attribute (above)
         :return:                A requests response object
         """
         # Get file format
@@ -182,12 +184,13 @@ class ACISession:
         else:
             path = self.get_method_path(method, file_format)
 
-        # Get keyword arguments as GET parameters
+        # Add GET parameters to path
         if subscribe:
-            kwargs["subscription"] = "yes"
+            params["subscription"] = "yes"
 
-        if len(kwargs.keys()) > 0:
-            path += ACISession.dict_to_get(kwargs)
+        for i, key in enumerate(params.keys()):
+            path += "?" if i == 0 else "&"
+            path += key + "=" + params[key]
 
         # Check current session and subscription
         if self.session is None:
@@ -212,14 +215,6 @@ class ACISession:
             self.subscriber.subscribe(json_resp["subscriptionId"], method)
 
         return resp
-
-    @staticmethod
-    def dict_to_get(dict):
-        ret = ""
-        for i, key in enumerate(dict.keys()):
-            ret += "?" if i == 0 else "&"
-            ret += key + "=" + dict[key]
-        return ret
 
     @staticmethod
     def extract_token(response):
