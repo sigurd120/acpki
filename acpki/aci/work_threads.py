@@ -1,4 +1,4 @@
-import time
+import time, sys
 from threading import Thread
 from acpki.util.exceptions import SubscriptionError
 
@@ -37,11 +37,14 @@ class WSThread(StoppableThread):
 
     def run(self):
         while True:
-            time.sleep(self.sleep_length)
-            if self.running:
-                opcode, data = self.ws.recv_data()
-                if opcode and data:
-                    self.cb(opcode, data)
+            try:
+                time.sleep(self.sleep_length)
+                if self.running:
+                    opcode, data = self.ws.recv_data()
+                    if opcode and data:
+                        self.cb(opcode, data)
+            except KeyboardInterrupt:
+                sys.exit()
 
 
 class RefreshThread(StoppableThread):

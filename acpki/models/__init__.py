@@ -1,2 +1,2 @@
 from CertificateRequest import CertificateRequest
-from EPG import EPG
+from EPG import EPG, EPGUpdate

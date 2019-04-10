@@ -3,6 +3,7 @@ import urllib3
 import websocket
 from acpki.util.exceptions import SessionError, SubscriptionError
 from acpki.aci import Subscriber, Subscription
+from acpki.config import CONFIG
 
 
 class ACISession:
@@ -26,8 +27,8 @@ class ACISession:
 
         self.username = "admin"
         self.password = "ciscopsdt"
-        self.cookie_file = "private/cookie.txt"
-        self.token_file = "private/token.txt"
+        self.cookie_file = os.path.join(CONFIG["base-dir"], CONFIG["apic"]["cookie-file"])
+        self.token_file = os.path.join(CONFIG["base-dir"], CONFIG["apic"]["token-file"])
 
         # Set initial values
         self.crt_file = None

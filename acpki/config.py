@@ -15,6 +15,6 @@ CONFIG = {
         "refresh-interval": 45,
         "ws-timeout": 60
         },
-    "base-url": os.path,
+    "base-dir": os.path.dirname(__file__),
     "verbose": True
 }
