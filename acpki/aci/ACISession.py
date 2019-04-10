@@ -24,6 +24,7 @@ class ACISession:
         self.apic_base_url = "sandboxapicdc.cisco.com"
         self.apic_web_url = self.get_web_url(self.apic_base_url)
 
+        # Credentials and authentication
         self.username = "admin"
         self.password = "ciscopsdt"
         self.cookie_file = os.path.join(CONFIG["base-dir"], CONFIG["apic"]["cookie-file"])
@@ -34,6 +35,7 @@ class ACISession:
         self.token = None
         self.session = None
         self.subscriber = None
+        self.cb_methods = {}
 
         # Setup and connect
         self.setup()
@@ -56,7 +58,7 @@ class ACISession:
             prefix = "http://"
         return prefix + base_url
 
-    def connect(self, sub_cb=None, force_auth=False):
+    def connect(self, force_auth=False):
         """
         Standard method for connecting with the APIC. Attempts to resume session based on the stored session cookie. If
         the cookie does not exist or has expired it authenticates.
@@ -77,7 +79,27 @@ class ACISession:
                 sys.exit(1)
 
         # Create subscriber
-        self.subscriber = Subscriber(self, sub_cb)
+        self.subscriber = Subscriber(self, sub_cb=self.callback)
+
+    def callback(self, opcode, data):
+        """
+        When receiving WebSocket data, this method maps the subscription to its assigned callback method and forwards
+        the data to that method. If the method is not found it executes default code.
+        :param opcode:      Op code, i.e. reference to the related WebSocket
+        :param data:        Subscription data, JSON or XML data that describes the changes
+        :return:
+        """
+        content = json.loads(data)
+        sub_id = content["subscriptionId"][0]  # TODO: Find out why multiple sub ids can be returned
+        if sub_id in self.cb_methods.keys():
+            # Callback method found
+            cb = self.cb_methods[sub_id]
+            print("Found matching callback method. Forwarding data to that...")
+            cb(opcode, data)
+        else:
+            # Callback method not found, default
+            print("No matching CB method. Using default:")
+            print("Callback WS-{0}: {1}".format(opcode, data))
 
     def disconnect(self):
         if self.verbose:
@@ -214,9 +236,15 @@ class ACISession:
             if self.verbose:
                 print("Creating new subscription")
             json_resp = json.loads(resp.content)
-            self.subscriber.subscribe(json_resp["subscriptionId"], method, callback=sub_cb)
+
+            # Subscribe and save reference to subscription callback
+            sub = self.subscriber.subscribe(json_resp["subscriptionId"], method, callback=sub_cb)
+            self.cb_methods[sub.sub_id] = sub.callback
 
         return resp
+
+    def unsubscribe(self, sub_id):
+        raise NotImplementedError("Method not implemented. Let the subscription expire for now.")  # TODO: Implement
 
     @staticmethod
     def extract_token(response):

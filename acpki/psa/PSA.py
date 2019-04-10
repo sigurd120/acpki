@@ -10,10 +10,10 @@ class PSA:
         self.main()
 
     def main(self):
-        self.adapter.connect(sub_cb=self.epg_cb)
-        self.epgs = self.adapter.get_epgs()
+        self.adapter.connect()
+        self.epgs = self.adapter.get_epgs(self.sub_cb)
 
-    def epg_cb(self, opcode, data):
+    def sub_cb(self, opcode, data):
         print("PSA EPG CB: {}".format(data))
 
 

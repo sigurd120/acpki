@@ -16,19 +16,17 @@ class ACIAdapter:
         self.tenant_name = CONFIG["apic"]["tn-name"]
         self.ap_name = CONFIG["apic"]["ap-name"]
         self.session = ACISession(verbose=True)
-        self.sub_cb = None
 
-    def connect(self, sub_cb=None):
+    def connect(self):
         # Connect to APIC
-        self.sub_cb = sub_cb
-        self.session.connect(sub_cb=sub_cb)
+        self.session.connect()
         time.sleep(3)
         # aciadapter.session.get("mo/uni/tn-acpki_prototype", subscribe=True)
 
     def disconnect(self):
         self.session.disconnect()
 
-    def get_epgs(self):
+    def get_epgs(self, sub_cb):
         """
         Get all EPGs from the APIC and subscribe to changes by defining a callback method. All changes will be submitted
         to this callback method.
@@ -47,7 +45,7 @@ class ACIAdapter:
         url = "node/mo/uni/tn-{0}/ap-{1}".format(self.tenant_name, self.ap_name)
 
         # Send request and verify response
-        resp = self.session.get(url, "json", subscribe=True, params=params)
+        resp = self.session.get(url, "json", sub_cb=sub_cb, subscribe=True, params=params)
         if resp.ok:
             # Load initial EPGs in the current AP
             content = json.loads(resp.content)

@@ -99,7 +99,7 @@ class Subscriber:
     def refresh_subscriptions(self):
         for subscription in self.subscriptions:
             if self.verbose:
-                print("Refreshing subscription {}".format(subscription.sid))
+                print("Refreshing subscription {}".format(subscription.sub_id))
             if not isinstance(subscription, Subscription):
                 if self.verbose:
                     raise SystemError("Encountered object inside Subscriber.subscriptions that was not of type "
@@ -110,7 +110,7 @@ class Subscriber:
             else:
                 print("Could not refresh session. Status: {0} {1}".format(resp.status_code, resp.reason))
 
-    def subscribe(self, sid, method, callback=None):
+    def subscribe(self, sub_id, method, callback=None):
         """
         This method is called when a new subscription IS generated. To create a new subscription, use the
         ACISession.get() method with subscription=True as an optional parameter.
@@ -119,11 +119,13 @@ class Subscriber:
         :param callback:    Callback method to which the result will be passed for given subscription
         :return:
         """
-        subscription = Subscription(sid, method, callback)
+        subscription = Subscription(self, sub_id, method, callback)
         self.subscriptions.append(subscription)
 
+        return subscription
+
     def unsubscribe(self, id):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def get_ws_url(self, base_url):
         if self.secure:
