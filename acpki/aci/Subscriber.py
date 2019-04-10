@@ -10,14 +10,9 @@ class Subscriber:
         # Get parameters from session
         self.token = aci_session.token
         # self.cookies = aci_session.get_cookies()
-        self.sub_cb = aci_session.sub_cb
         self.secure = aci_session.secure
         self.crt_file = aci_session.crt_file
         self.verbose = aci_session.verbose
-
-        if self.sub_cb is None:
-            raise SubscriptionError("Subscriber can only be created if the session has the subscription callback method"
-                                    "defined (ACISession.sub_cb is not None).")
 
         # Initial setup
         self.url = self.get_ws_url(aci_session.apic_base_url)
@@ -60,6 +55,15 @@ class Subscriber:
 
         return
 
+    def sub_cb(self, opcode, data):
+        """
+        This method maps incoming subscription data to its respective callback method.
+        :param opcode:      The WS identifier for the incoming data
+        :param data:        Subscription data
+        :return:
+        """
+        print("Sub CB {0}: {1}".format(opcode, data))
+
     def disconnect(self):
         if self.verbose:
             print("Closing websocket...")
@@ -100,15 +104,16 @@ class Subscriber:
             else:
                 print("Could not refresh session. Status: {0} {1}".format(resp.status_code, resp.reason))
 
-    def subscribe(self, sid, method):
+    def subscribe(self, sid, method, callback=None):
         """
         This method is called when a new subscription IS generated. To create a new subscription, use the
         ACISession.get() method with subscription=True as an optional parameter.
         :param sid:         Subscription ID of the generated subscription
         :param method:      Method for which the subscription is created, i.e. what is following apic/api/...
+        :param callback:    Callback method to which the result will be passed for given subscription
         :return:
         """
-        subscription = Subscription(sid, method)
+        subscription = Subscription(sid, method, callback)
         self.subscriptions.append(subscription)
 
     def unsubscribe(self, id):

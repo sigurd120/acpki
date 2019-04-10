@@ -1,7 +1,7 @@
-import sys, os, time
+import sys, os, time, json
 from acpki.aci import ACISession
 from acpki.config import CONFIG
-from acpki.util.exceptions import RequestError
+from acpki.util.exceptions import RequestError, NotFoundError
 
 
 class ACIAdapter:
@@ -30,15 +30,16 @@ class ACIAdapter:
     def get_epgs(self):
         params = {
             "query-target": "children",
-            "target-subtree-class": "fvAEPg",
-            "query-target-filter": "eq(fvAEPg.isAttrBasedEPg,\"false\")",
-            "order-by": "fvAEPg.name|asc"
+            #"target-subtree-class": "fvAEPg",
+            #"query-target-filter": "eq(fvAEPg.isAttrBasedEPg,\"false\")",
+            #"order-by": "fvAEPg.name|asc"
         }
 
         url = "node/mo/uni/tn-{0}/ap-{1}".format(self.tenant_name, self.ap_name)
-        resp = self.session.get(url, "json", subscribe=True)
+        resp = self.session.get(url, "json", subscribe=True, params=params)
         if resp.ok:
-            return resp.content
+            content = json.loads(resp.content)
+            return content["imdata"]
         else:
             raise RequestError("Could not get EPGs from the APIC. Please check the request URL, GET parameters, "
                                "configuration and that the APIC is available before trying again.")

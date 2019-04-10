@@ -22,7 +22,7 @@ class ACISession:
         self.verbose = verbose
         self.apic_base_url = "sandboxapicdc.cisco.com"
         self.apic_web_url = self.get_web_url(self.apic_base_url)
-        self.sub_cb = sub_cb
+        self.sub_cb = sub_cb  # TODO: Remove this parameter. No longer in use!
 
         self.username = "admin"
         self.password = "ciscopsdt"
@@ -167,7 +167,7 @@ class ACISession:
     def get_cookies(self):
         return self.session.cookies
 
-    def get(self, method, file_format=None, silent=False, subscribe=False, params={}):
+    def get(self, method, file_format=None, silent=False, subscribe=False, sub_cb=None, params={}):
         """
         Get method that adds the necessary parameters and URL.
         :param method:          ACI method name, i.e. what is following apic-url/api/, excluding .json and .xml
@@ -212,7 +212,7 @@ class ACISession:
             if self.verbose:
                 print("Creating new subscription")
             json_resp = json.loads(resp.content)
-            self.subscriber.subscribe(json_resp["subscriptionId"], method)
+            self.subscriber.subscribe(json_resp["subscriptionId"], method, callback=sub_cb)
 
         return resp
 
