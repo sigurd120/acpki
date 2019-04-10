@@ -15,12 +15,13 @@ class ACIAdapter:
         # Setup
         self.tenant_name = CONFIG["apic"]["tn-name"]
         self.ap_name = CONFIG["apic"]["ap-name"]
-        self.session = ACISession(self.subscription_callback, verbose=True)
-        self.epg_cb = None
+        self.session = ACISession(verbose=True)
+        self.sub_cb = None
 
-    def connect(self):
+    def connect(self, sub_cb=None):
         # Connect to APIC
-        self.session.connect()
+        self.sub_cb = sub_cb
+        self.session.connect(sub_cb=sub_cb)
         time.sleep(3)
         # aciadapter.session.get("mo/uni/tn-acpki_prototype", subscribe=True)
 
@@ -46,7 +47,7 @@ class ACIAdapter:
         url = "node/mo/uni/tn-{0}/ap-{1}".format(self.tenant_name, self.ap_name)
 
         # Send request and verify response
-        resp = self.session.get(url, "json", subscribe=True, sub_cb=self.def_epg_cb, params=params)
+        resp = self.session.get(url, "json", subscribe=True, params=params)
         if resp.ok:
             # Load initial EPGs in the current AP
             content = json.loads(resp.content)
@@ -64,18 +65,8 @@ class ACIAdapter:
     def load_epgs(self):
         raise NotImplementedError
 
-    def def_epg_cb(self, opcode, data):
-        print("Default EPG CB ({0}): {1}".format(opcode, data))
-
     def json_to_epg_update(self, json_update):
         update = json.loads(json_update)
-
-    def set_epg_cb(self, method):
-        self.epg_cb = method
-
-    @staticmethod
-    def subscription_callback(opcode, data):
-        print("WebSocket {0}: {1}".format(opcode, data))
 
 
 if __name__ == "__main__":

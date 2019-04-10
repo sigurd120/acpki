@@ -10,12 +10,11 @@ class PSA:
         self.main()
 
     def main(self):
-        self.adapter.connect()
-        self.adapter.set_epg_cb(self.epg_cb)  # Set the callback method
+        self.adapter.connect(sub_cb=self.epg_cb)
         self.epgs = self.adapter.get_epgs()
 
-    def epg_cb(self, epgs):
-        print("PSA EPG CB: {}".format(epgs))
+    def epg_cb(self, opcode, data):
+        print("PSA EPG CB: {}".format(data))
 
 
 if __name__ == "__main__":

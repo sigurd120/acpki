@@ -6,10 +6,9 @@ from acpki.util.exceptions import SubscriptionError
 
 
 class Subscriber:
-    def __init__(self, aci_session):
+    def __init__(self, aci_session, sub_cb):
         # Get parameters from session
         self.token = aci_session.token
-        # self.cookies = aci_session.get_cookies()
         self.secure = aci_session.secure
         self.crt_file = aci_session.crt_file
         self.verbose = aci_session.verbose
@@ -24,9 +23,10 @@ class Subscriber:
         self.connected = False
         self.subscriptions = []
 
-        self.connect()
+        # Connect
+        self.connect(sub_cb)
 
-    def connect(self):
+    def connect(self, sub_cb=None):
         # Security options
         if self.secure and self.crt_file is not None:
             # Verify certificate
@@ -37,6 +37,12 @@ class Subscriber:
 
         # Create websocket
         print("Establishing websocket connection with the APIC...")
+
+        # Subscription callback
+        if sub_cb is None:
+            self.sub_cb = self.def_sub_cb
+        else:
+            self.sub_cb = sub_cb
 
         # Connect
         # TODO: Find out what errors this can cause and catch them.
@@ -55,14 +61,14 @@ class Subscriber:
 
         return
 
-    def sub_cb(self, opcode, data):
+    def def_sub_cb(self, opcode, data):
         """
         This method maps incoming subscription data to its respective callback method.
         :param opcode:      The WS identifier for the incoming data
         :param data:        Subscription data
         :return:
         """
-        print("Sub CB {0}: {1}".format(opcode, data))
+        print("Default subscriber CB ({0}): {1}".format(opcode, data))
 
     def disconnect(self):
         if self.verbose:

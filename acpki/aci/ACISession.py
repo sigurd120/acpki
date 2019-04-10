@@ -11,7 +11,7 @@ class ACISession:
     This class is responsible for the sessions with Cisco ACI, which are responsible for all communication and
     subscriptions with the APIC.
     """
-    def __init__(self, sub_cb=None, verbose=False):
+    def __init__(self, verbose=False):
         """
         Constructor for the ACISession class.
         :param sub_cb:      Callback method for subscriptions - if not provided subscriptions are disabled for session
@@ -23,7 +23,6 @@ class ACISession:
         self.verbose = verbose
         self.apic_base_url = "sandboxapicdc.cisco.com"
         self.apic_web_url = self.get_web_url(self.apic_base_url)
-        self.sub_cb = sub_cb  # TODO: Remove this parameter. No longer in use!
 
         self.username = "admin"
         self.password = "ciscopsdt"
@@ -57,10 +56,11 @@ class ACISession:
             prefix = "http://"
         return prefix + base_url
 
-    def connect(self, force_auth=False):
+    def connect(self, sub_cb=None, force_auth=False):
         """
         Standard method for connecting with the APIC. Attempts to resume session based on the stored session cookie. If
         the cookie does not exist or has expired it authenticates.
+        :param sub_cb:      Callback method for any subscription created in this session (Default: None)
         :param force_auth:  Will not attempt to resume session, and authenticate even with a valid session cookie
         :return:
         """
@@ -76,8 +76,8 @@ class ACISession:
                 print("Could not log in... Please check the above status code.")
                 sys.exit(1)
 
-        if self.sub_cb is not None:
-            self.subscriber = Subscriber(self)
+        # Create subscriber
+        self.subscriber = Subscriber(self, sub_cb)
 
     def disconnect(self):
         if self.verbose:
@@ -175,6 +175,7 @@ class ACISession:
         :param file_format:     Format of returned data, either "json", "xml" or None (default)
         :param silent:          Packet will be sent silently, overriding self.verbose
         :param subscribe:       Subscribe to updates in the information queried, requires an active WebSocket
+        :param sub_cb:          Callback method to which subscription data will be sent
         :param params:          Dictionary of GET parameters to add to URL, excluding "subscription" which is enabled by
                                 setting the "subscribe" attribute (above)
         :return:                A requests response object
