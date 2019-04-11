@@ -32,6 +32,7 @@ class ACISession:
 
         # Set initial values
         self.crt_file = None
+        self.verify = self.crt_file is not None  # TODO: Find out how this works...
         self.token = None
         self.session = None
         self.subscriber = None
@@ -48,7 +49,7 @@ class ACISession:
                   "file in the configuration. ")
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-    def get_method_path(self, method, file_format="json"):
+    def get_method_url(self, method, file_format="json"):
         return self.apic_web_url + "/api/" + method + "." + file_format
 
     def get_web_url(self, base_url):
@@ -144,7 +145,7 @@ class ACISession:
         # Prepare and send auth request
         self.session = requests.Session()
         login = {"aaaUser":{"attributes": {"name": self.username, "pwd": self.password}}}
-        path = self.get_method_path("aaaLogin")
+        path = self.get_method_url("aaaLogin")
         resp = self.session.post(path, json=login, verify=False)
 
         # Verify response from APIC
@@ -204,9 +205,9 @@ class ACISession:
         """
         # Get file format
         if file_format is None:
-            path = self.get_method_path(method)
+            path = self.get_method_url(method)
         else:
-            path = self.get_method_path(method, file_format)
+            path = self.get_method_url(method, file_format)
 
         # Add GET parameters to path
         if subscribe:
@@ -226,7 +227,7 @@ class ACISession:
             raise SubscriptionError("Could not subscribe as Subscriber was disconnected.")
 
         # Analyse and print response (if verbose mode)
-        resp = self.session.get(path, verify=False)
+        resp = self.session.get(path, verify=self.verify)
         if self.verbose and not silent:
             print("GET {0}".format(path))
             print("Reponse: {0} {1}".format(resp.status_code, resp.reason))
@@ -242,6 +243,20 @@ class ACISession:
             self.cb_methods[sub.sub_id] = sub.callback
 
         return resp
+
+    def post(self, method, jsn, file_format=None):
+        url = self.get_method_url(method, file_format)
+
+        payload = "{\n\t\"fvTenant\": {\n\t\t\"attributes\": {\n\t\t\t\"name\": \"acpki_prototype\"\n\t\t}\n\t}\n}"
+        headers = {
+            'Content-Type': "application/json",
+            'cache-control': "no-cache",
+            'Postman-Token': "994667cb-5c0b-4de8-9840-507581a746cf"
+        }
+
+        response = self.session.request("POST", url, data=payload, headers=headers, verify=self.verify)
+        return response
+
 
     def unsubscribe(self, sub_id):
         raise NotImplementedError("Method not implemented. Let the subscription expire for now.")  # TODO: Implement

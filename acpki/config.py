@@ -4,7 +4,7 @@ CONFIG = {
     "apic": {
         "name": "sandbox-apic",
         "base-url": "sandboxapic.cisco.com",  # Should not include http://, https:// etc.
-        "tn-name": "apic_prototype",
+        "tn-name": "acpki_prototype",
         "ap-name": "prototype",
         "use-tls": True,
         "username": "admin",

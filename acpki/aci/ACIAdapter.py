@@ -1,8 +1,8 @@
 import sys, os, time, json
 from acpki.aci import ACISession
-from acpki.models import EPG, EPGUpdate
+from acpki.models import EPG, EPGUpdate, Tenant
 from acpki.config import CONFIG
-from acpki.util.exceptions import RequestError, NotFoundError
+from acpki.util.exceptions import RequestError, NotFoundError, ConnectionError
 
 
 class ACIAdapter:
@@ -17,11 +17,30 @@ class ACIAdapter:
         self.ap_name = CONFIG["apic"]["ap-name"]
         self.session = ACISession(verbose=True)
 
-    def connect(self):
+    def connect(self, auto_prepare=True):
         # Connect to APIC
         self.session.connect()
         time.sleep(3)
-        # aciadapter.session.get("mo/uni/tn-acpki_prototype", subscribe=True)
+        if auto_prepare:
+            self.prepare_environment()
+
+    def prepare_environment(self):
+        # Check if the tenant exists
+        res = self.session.get("node/mo/uni/tn-{0}.json".format(self.tenant_name))
+        if res.ok:
+            content = json.loads(res.content)
+            if int(content["totalCount"]) == 0:
+                # Create tenant
+                tenant = Tenant(self.tenant_name)
+                res = self.session.post("mo/uni", tenant.to_json(), file_format="json")
+                if not res.ok:
+                    raise RequestError("Could not create tenant. Response: {0} {1}".format(res.status_code, res.reason))
+        else:
+            raise ConnectionError("Could not get tenant from the APIC. ({0} {1}".format(res.status_code, res.reason))
+
+        # Check if the AP exists
+
+
 
     def disconnect(self):
         self.session.disconnect()
