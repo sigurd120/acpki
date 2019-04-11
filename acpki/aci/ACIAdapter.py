@@ -1,6 +1,6 @@
 import sys, os, time, json
 from acpki.aci import ACISession
-from acpki.models import EPG, EPGUpdate, Tenant
+from acpki.models import EPG, EPGUpdate, Tenant, AP
 from acpki.config import CONFIG
 from acpki.util.exceptions import RequestError, NotFoundError, ConnectionError
 
@@ -26,17 +26,32 @@ class ACIAdapter:
 
     def prepare_environment(self):
         # Check if the tenant exists
-        res = self.session.get("node/mo/uni/tn-{0}.json".format(self.tenant_name))
+        res = self.session.get("node/mo/uni/tn-{0}".format(self.tenant_name))
         if res.ok:
             content = json.loads(res.content)
             if int(content["totalCount"]) == 0:
                 # Create tenant
                 tenant = Tenant(self.tenant_name)
-                res = self.session.post("mo/uni", tenant.to_json(), file_format="json")
+                res = self.session.post("mo/uni", tenant.to_json())
                 if not res.ok:
                     raise RequestError("Could not create tenant. Response: {0} {1}".format(res.status_code, res.reason))
         else:
             raise ConnectionError("Could not get tenant from the APIC. ({0} {1}".format(res.status_code, res.reason))
+
+        res1 = self.session.get("node/mo/uni/tn-{0}/ap-{1}".format(self.tenant_name, self.ap_name))
+        if res1.ok:
+            # 200 OK
+            content = json.loads(res1.content)
+            if int(content["totalCount"]) == 0:
+                # Create AP
+                ap = AP(self.ap_name)
+                res2 = self.session.post("mo/uni/tn-{0}".format(self.tenant_name), ap.to_json())
+                if not res2.ok:
+                    raise RequestError("Could not create AP {0}. Response: {1} {2}"
+                                       .format(self.ap_name, res2.status_code, res2.reason))
+        else:
+            raise ConnectionError("Could not get AP from the APIC. ({0} {1}".format(res1.status_code, res1.reason))
+
 
         # Check if the AP exists
 

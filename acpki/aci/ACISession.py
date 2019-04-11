@@ -244,17 +244,15 @@ class ACISession:
 
         return resp
 
-    def post(self, method, jsn, file_format=None):
-        url = self.get_method_url(method, file_format)
+    def post(self, method, jsn):
+        url = self.get_method_url(method, "json")  # JSON is only supported file_format for POST requests
 
-        payload = "{\n\t\"fvTenant\": {\n\t\t\"attributes\": {\n\t\t\t\"name\": \"acpki_prototype\"\n\t\t}\n\t}\n}"
         headers = {
             'Content-Type': "application/json",
-            'cache-control': "no-cache",
-            'Postman-Token': "994667cb-5c0b-4de8-9840-507581a746cf"
+            'cache-control': "no-cache"
         }
 
-        response = self.session.request("POST", url, data=payload, headers=headers, verify=self.verify)
+        response = self.session.request("POST", url, data=jsn, headers=headers, verify=self.verify)
         return response
 
 
