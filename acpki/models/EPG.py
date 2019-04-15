@@ -12,6 +12,9 @@ class EPG:
         self.name = name
         self.descr = None
 
+        self.provides = []
+        self.consumes = []
+
 
 class EPGUpdate:
     def __init__(self, dn, name, mod_ts, status, sub_id):

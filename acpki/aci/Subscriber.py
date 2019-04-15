@@ -83,6 +83,7 @@ class Subscriber:
         self.ws_thread = None
         self.refresh_thread.stop()
         self.refresh_thread = None
+        self.refresh_failed = 0
 
         # Clear subscriptions
         self.subscriptions = []
@@ -104,17 +105,21 @@ class Subscriber:
                 if self.verbose:
                     raise SystemError("Encountered object inside Subscriber.subscriptions that was not of type "
                                       "Subscription. I do not know what to do with that. ")
-            resp = self.session.get("subscriptionRefresh", params={"id": subscription.sid})
+            resp = self.session.get("subscriptionRefresh", params={"id": subscription.sub_id})
             if resp.ok:
-                print("Subscription {0} was successfully refreshed.".format(subscription.sid))
+                print("Subscription {0} was successfully refreshed.".format(subscription.sub_id))
+                self.refresh_failed = 0
             else:
                 print("Could not refresh session. Status: {0} {1}".format(resp.status_code, resp.reason))
+                self.refresh_failed += 1
+                if self.refresh_failed >= 3:
+                    raise SubscriptionError("Failed to refresh subscription 3 times in a row.")
 
     def subscribe(self, sub_id, method, callback=None):
         """
         This method is called when a new subscription IS generated. To create a new subscription, use the
         ACISession.get() method with subscription=True as an optional parameter.
-        :param sid:         Subscription ID of the generated subscription
+        :param sub_id:      Subscription ID of the generated subscription
         :param method:      Method for which the subscription is created, i.e. what is following apic/api/...
         :param callback:    Callback method to which the result will be passed for given subscription
         :return:

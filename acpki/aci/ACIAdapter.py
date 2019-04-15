@@ -1,6 +1,6 @@
 import sys, os, time, json
 from acpki.aci import ACISession
-from acpki.models import EPG, EPGUpdate, Tenant, AP
+from acpki.models import Tenant, AP, EPG, EPGUpdate, Contract
 from acpki.config import CONFIG
 from acpki.util.exceptions import RequestError, NotFoundError, ConnectionError
 
@@ -17,8 +17,12 @@ class ACIAdapter:
         self.ap_name = CONFIG["apic"]["ap-name"]
         self.session = ACISession(verbose=True)
 
-    def connect(self, auto_prepare=True):
-        # Connect to APIC
+    def connect(self, auto_prepare):
+        """
+        Connect to the APIC.
+        :param auto_prepare:    Creates the tenant and AP if they do not exist
+        :return:
+        """
         self.session.connect()
         time.sleep(3)
         if auto_prepare:
@@ -31,31 +35,33 @@ class ACIAdapter:
             content = json.loads(res.content)
             if int(content["totalCount"]) == 0:
                 # Create tenant
+                print("Creating Tenant {0}".format(self.tenant_name))
                 tenant = Tenant(self.tenant_name)
                 res = self.session.post("mo/uni", tenant.to_json())
-                if not res.ok:
+                if res.ok:
+                    print("Tenant successfully created.")
+                else:
                     raise RequestError("Could not create tenant. Response: {0} {1}".format(res.status_code, res.reason))
         else:
             raise ConnectionError("Could not get tenant from the APIC. ({0} {1}".format(res.status_code, res.reason))
 
+        # Check if the AP exists
         res1 = self.session.get("node/mo/uni/tn-{0}/ap-{1}".format(self.tenant_name, self.ap_name))
         if res1.ok:
             # 200 OK
             content = json.loads(res1.content)
             if int(content["totalCount"]) == 0:
                 # Create AP
+                print("Creating AP {0}".format(self.ap_name))
                 ap = AP(self.ap_name)
                 res2 = self.session.post("mo/uni/tn-{0}".format(self.tenant_name), ap.to_json())
-                if not res2.ok:
+                if res2.ok:
+                    print("AP successfully created.")
+                else:
                     raise RequestError("Could not create AP {0}. Response: {1} {2}"
                                        .format(self.ap_name, res2.status_code, res2.reason))
         else:
             raise ConnectionError("Could not get AP from the APIC. ({0} {1}".format(res1.status_code, res1.reason))
-
-
-        # Check if the AP exists
-
-
 
     def disconnect(self):
         self.session.disconnect()
@@ -93,6 +99,37 @@ class ACIAdapter:
         else:
             raise RequestError("Could not get EPGs from the APIC. Please check the request URL, GET parameters, "
                                "configuration and that the APIC is available before trying again.")
+
+    def get_contracts(self, provider, cls, callback):
+        """
+        Get all contracts provided by the provider EPG specified
+        :param provider:    The providing EPG
+        :param cls:         Subtree class, must be fvRsProv for provided contracts or fvRsCons for consumed contracts
+        :return:
+        """
+        path = "node/mo/uni/tn-{0}/ap-{1}/epg-{2}".format(self.tenant_name, self.ap_name, provider)
+        params = {
+            "query-target": "subtree",
+            "target-subtree-class": cls
+        }
+        subscribe = callback is not None
+        contracts = []
+
+        json_resp = self.session.get(path, "json", subscribe=subscribe, params=params, silent=True)
+        content = json.loads(json_resp.content)
+
+        for item in content["imdata"]:
+            json_contract = item[cls]["attributes"]
+            contract = Contract(json_contract["uid"], json_contract["tnVzBrCPName"])
+            contracts.append(contract)
+
+        return contracts
+
+    def get_provided_contracts(self, provider, callback=None):
+        return self.get_contracts(provider, "fvRsProv", callback)
+
+    def get_consumed_contracts(self, provider, callback=None):
+        return self.get_contracts(provider, "fvRsCons", callback)
 
     def load_epgs(self):
         raise NotImplementedError
