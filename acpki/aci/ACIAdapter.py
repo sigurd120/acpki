@@ -11,11 +11,16 @@ class ACIAdapter:
     tenant in question.
     """
 
-    def __init__(self):
+    def __init__(self, verbose):
+        # Arguments
+        self.verbose = verbose
+
         # Setup
         self.tenant_name = CONFIG["apic"]["tn-name"]
         self.ap_name = CONFIG["apic"]["ap-name"]
-        self.session = ACISession(verbose=True)
+
+        # Create session
+        self.session = ACISession(verbose=self.verbose)
 
     def connect(self, auto_prepare):
         """
