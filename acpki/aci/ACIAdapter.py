@@ -11,7 +11,7 @@ class ACIAdapter:
     tenant in question.
     """
 
-    def __init__(self, verbose):
+    def __init__(self, verbose=True):
         # Arguments
         self.verbose = verbose
 
@@ -112,6 +112,9 @@ class ACIAdapter:
         :param cls:         Subtree class, must be fvRsProv for provided contracts or fvRsCons for consumed contracts
         :return:
         """
+        if cls != "fvRsProv" and cls != "fvRsCons":
+            raise ValueError("Invalid value for argument cls")
+
         path = "node/mo/uni/tn-{0}/ap-{1}/epg-{2}".format(self.tenant_name, self.ap_name, provider)
         params = {
             "query-target": "subtree",

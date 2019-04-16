@@ -1,3 +1,4 @@
 class CertificateRequest(object):
-    def __init__(self):
-        pass
+    def __init__(self, origin, destination):
+        self.origin = origin
+        self.destination = destination

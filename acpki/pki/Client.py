@@ -3,6 +3,7 @@ from socket import SOCK_STREAM, socket, AF_INET, error as SocketError
 from OpenSSL import SSL
 from acpki.pki import CommAgent, CertificateManager
 from acpki.util.exceptions import *
+from acpki.config import CONFIG
 
 
 class Client(CommAgent):
@@ -28,10 +29,12 @@ class Client(CommAgent):
                 conn.request_ocsp()
             self.connection = conn
         except SSL.Error as error:
-            print("SSL error: " + error)
+            # TLS failed
+            print("SSL error: " + str(error))
             self.connection = None
             sys.exit(1)
         except SocketError:
+            # Socket failed
             print("Connection refused. Please check that the server is running and that the address and port are "
                   "correct.")
             self.connection = None
@@ -51,10 +54,6 @@ class Client(CommAgent):
 
     @property
     def connected(self):
-        """
-        Return the connection status.
-        :return: Connection status (True or False)
-        """
         return self.connection is not None
 
     def get_context(self):
@@ -72,6 +71,13 @@ class Client(CommAgent):
 
     @staticmethod
     def ocsp_client_callback(conn, ocsp, data=None):
+        """
+        Callback method for the OCSP certificate revokation check
+        :param conn:    Connection object
+        :param ocsp:    TODO: Find these from OCSP doc.
+        :param data:
+        :return:
+        """
         print("OCSP callback")
         print(data)
         return True

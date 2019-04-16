@@ -1,5 +1,6 @@
 import os
 from OpenSSL import crypto
+from acpki.config import CONFIG
 
 
 class CertificateManager:
@@ -7,8 +8,8 @@ class CertificateManager:
     This class will handle common tasks like verifying, creating or signing certificates. The class is partly based on
     the examples provided in pyOpenSSL.
     """
-    default_validity = 31536000  # One year (3600 * 24 * 365)
-    certs_dir = os.path.abspath("./certs")  # Relative to pki directory
+    default_validity = CONFIG["pki"]["default-validity-days"] * 86400  # 86400 seconds in a day
+    certs_dir = CONFIG["pki"]["cert-dir"]
 
     def __init__(self):
         pass
@@ -17,6 +18,7 @@ class CertificateManager:
     def create_csr(key_pair, digest="md5", **attributes):
         """
         Generates a certificate signing request (CSR) with the default encryption type and key size.
+        :param key_pair:        Key pair for the CSR
         :param digest:          Digest hashing algorithm. Default: "md5"
         :param attributes:      Attributes to apply on the CSR. Valid params: C, ST, L, O, OU and CN
         :return:
@@ -102,7 +104,7 @@ class CertificateManager:
         return os.path.isfile(CertificateManager.get_cert_path(file_name))
 
     @staticmethod
-    def create_key_pair(key_type, key_size):
+    def create_key_pair(key_type=crypto.TYPE_RSA, key_size=2048):
         """
         Generate a key pair for certificate generation.
         :param key_type:        Valid key type, either crypto.TYPE_RSA or crypto.TYPE_DSA

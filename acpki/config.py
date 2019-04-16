@@ -1,5 +1,7 @@
 import os
 
+base_dir = os.path.dirname(__file__)
+
 CONFIG = {
     "apic": {
         "name": "sandbox-apic",
@@ -15,6 +17,14 @@ CONFIG = {
         "refresh-interval": 45,
         "ws-timeout": 60
         },
-    "base-dir": os.path.dirname(__file__),
-    "verbose": True
+    "base-dir": base_dir,
+    "verbose": True,
+    "pki": {
+        "cert-dir": os.path.join(base_dir, "pki/certs"),
+        "ca-cert-name": "root-ca.cert",
+        "ca-pkey-name": "root-ca.pkey",
+        "client-cert-name": "client.cert",
+        "server-cert-name": "server.cert",
+        "default-validity-days": 365
+    }
 }
