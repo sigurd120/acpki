@@ -72,7 +72,7 @@ class Client(CommAgent):
     @staticmethod
     def ocsp_client_callback(conn, ocsp, data=None):
         """
-        Callback method for the OCSP certificate revokation check
+        Callback method for the OCSP certificate revocation check
         :param conn:    Connection object
         :param ocsp:    TODO: Find these from OCSP doc.
         :param data:
