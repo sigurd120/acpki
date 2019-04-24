@@ -15,6 +15,9 @@ class EPG:
         self.provides = []
         self.consumes = []
 
+    def equals(self, epg):
+        return self.dn == epg.dn
+
 
 class EPGUpdate:
     def __init__(self, dn, name, mod_ts, status, sub_id):

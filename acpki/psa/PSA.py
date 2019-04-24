@@ -1,5 +1,6 @@
-import time
+import json
 from acpki.aci import ACIAdapter
+from acpki.models import EPG
 from acpki.util.exceptions import NotFoundError
 
 
@@ -60,8 +61,46 @@ class PSA:
         print("{0} {1}".format(opcode, data))
 
     def sub_cb(self, opcode, data):
-        print("PSA EPG CB: {}".format(data))
+        """
+        Subscription callback method, which is called whenever a subscription receives a new update. The method will
+        forward the data to its corresponding sub callback method, e.g. for EPGs or contracts.
+        :param opcode:      Unique identifier that corresponds to the socket with which the callback was received
+        :param data:        JSON data with the item(s) that have been updated
+        :return:
+        """
+        json_obj = json.loads(data)
+        subId = json_obj["subscriptionId"]
 
+        # Iterate through updates in subscription data
+        for item in json_obj["imdata"]:
+            if "fvAEPg" in item:
+                self.epg_cb(item["fvAEPg"]["attributes"])
+            else:
+                pass  # TODO: Add other types of callbacks
+
+    def epg_cb(self, attrs):
+        """
+        This callback method is called if a subscription callback concerns an EPG, and will create, modify or delete an
+        existing endpoint in the local self.epgs list.
+        :param attrs:   The attributes received from the JSON object in the subscription
+        :return:
+        """
+        if attrs["status"] == "created":
+            # Add EPG to local list
+            epg = EPG(attrs["dn"], attrs["name"])
+            self.epgs.append(epg)
+        elif attrs["status"] == "modified":
+            # Modify existing EPG
+            epg = EPG(attrs["dn"], attrs["name"])
+            for i, epg_local in enumerate(self.epgs):
+                if epg_local.equals(epg):
+                    self.epgs[i] = epg
+        elif attrs["status"] == "deleted":
+            # Delete EPG from local list
+            for i, epg_local in enumerate(self.epgs):
+                if epg_local.dn == attrs["dn"]:
+                    del self.epgs[i]
+                    break
 
 if __name__ == "__main__":
     psa = PSA()
