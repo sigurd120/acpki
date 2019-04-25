@@ -1,5 +1,5 @@
 import os
-from .CertificateManager import CertificateManager
+from acpki.pki.CertificateManager import CertificateManager
 
 
 class CommAgent(object):

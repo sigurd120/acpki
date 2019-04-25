@@ -1,4 +1,0 @@
-arya
-argparse
-cryptography
-requests

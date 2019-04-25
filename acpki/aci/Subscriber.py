@@ -1,4 +1,3 @@
-from acitoolkit import acitoolkit
 import websocket, ssl, time, thread, threading
 from acpki.aci import Subscription
 from work_threads import WSThread, RefreshThread

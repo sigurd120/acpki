@@ -5,6 +5,12 @@ from acpki.util.exceptions import NotFoundError
 
 
 class PSA:
+    """
+    Policy Security Adapter (PSA): This class acts as the main bridge between Cisco ACI and the PKI part of AC-PKI. It
+    requests information about endpoints, policies and subscribes to any changes in these data. The PSA also maintains
+    an internal model of the most critical data in the Cisco APIC, so it can continue operations even if the APIC is
+    unavailable for a while during runtime.
+    """
     def __init__(self):
         self.verbose = True
         self.epgs = []
@@ -24,6 +30,12 @@ class PSA:
             epg.provides = self.adapter.get_provided_contracts(epg.name, callback=self.contract_cb)
 
     def get_contracts(self, origin, destination):
+        """
+        Get all contracts between the specified origin and destination EPG.
+        :param origin:          Origin of the contract (consumer)
+        :param destination:     Destination of the contract (provider)
+        :return:                List of contracts
+        """
         origin_epg = None
         destination_epg = None
         contracts = []
@@ -71,7 +83,7 @@ class PSA:
         json_obj = json.loads(data)
         subId = json_obj["subscriptionId"]
 
-        # Iterate through updates in subscription data
+        # Iterate through updates in subscription data and call specific callback method
         for item in json_obj["imdata"]:
             if "fvAEPg" in item:
                 self.epg_cb(item["fvAEPg"]["attributes"])
@@ -88,6 +100,8 @@ class PSA:
         if attrs["status"] == "created":
             # Add EPG to local list
             epg = EPG(attrs["dn"], attrs["name"])
+            if self.verbose:
+                print("Endpoint group \"{0}\" was added to the PSA.".format(epg.name))
             self.epgs.append(epg)
         elif attrs["status"] == "modified":
             # Modify existing EPG
@@ -95,12 +109,22 @@ class PSA:
             for i, epg_local in enumerate(self.epgs):
                 if epg_local.equals(epg):
                     self.epgs[i] = epg
+                    if self.verbose:
+                        print("Endpoint group \"{0}\" was modified.".format(epg.name))
+                    break
         elif attrs["status"] == "deleted":
             # Delete EPG from local list
             for i, epg_local in enumerate(self.epgs):
                 if epg_local.dn == attrs["dn"]:
+                    name = self.epgs[i].name
                     del self.epgs[i]
+                    if self.verbose:
+                        print("Endpoint group \"{0}\" was deleted.".format(name))
                     break
+        elif self.verbose:
+            # Unknown status
+            print("Skipped unknown operation \"{0}\" for EPG: {1}".format(attrs["status"], attrs["dn"]))
+
 
 if __name__ == "__main__":
     psa = PSA()
