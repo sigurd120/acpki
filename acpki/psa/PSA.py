@@ -105,9 +105,12 @@ class PSA:
             self.epgs.append(epg)
         elif attrs["status"] == "modified":
             # Modify existing EPG
-            epg = EPG(attrs["dn"], attrs["name"])
+            name = attrs["name"] if "name" in attrs else None
+            epg = EPG(attrs["dn"], name)  # TODO: Find out how to get name from DN
             for i, epg_local in enumerate(self.epgs):
                 if epg_local.equals(epg):
+                    if epg.name is None:
+                        epg.name = self.epgs[i].name  # Workaround for when the name is not sent along with the EPG
                     self.epgs[i] = epg
                     if self.verbose:
                         print("Endpoint group \"{0}\" was modified.".format(epg.name))
