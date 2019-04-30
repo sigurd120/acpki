@@ -1,6 +1,7 @@
-import json
+import json, string, random
 from acpki.aci import ACIAdapter
 from acpki.models import EPG
+from acpki.util.randomness import random_string
 from acpki.util.exceptions import NotFoundError
 
 
@@ -15,9 +16,9 @@ class PSA:
         self.verbose = True
         self.epgs = []
         self.contracts = []
+        self.ous = {}
 
         self.adapter = ACIAdapter()
-
         self.main()
 
     def main(self):
@@ -67,6 +68,33 @@ class PSA:
             if self.validate_contract(con):
                 return True
         return False
+
+    def register_ou(self, request):
+        # Check if request is already registered
+        for key, val in self.ous.iteritems():
+            if val.equals(request):
+                return key  # Return the OU for which the request was found
+
+        # Not found - create
+        ou = random_string(32)  # Generate random string, no need to check for duplicates... P(Collision) =~ 2.3e+57
+        self.ous[ou] = request
+        if self.verbose:
+            print("Registered new OU {}".format(ou))
+        return ou
+
+    def remove_ou(self, ou):
+        """
+        Remove the given OU from dict.
+        :param ou:      OU to delete
+        :return:        True if OU was found, False otherwise
+        """
+        return self.ous.pop(ou, None) is not None
+
+    def find_ou(self, ou):
+        for key, val in self.ous.iteritems():
+            if key == ou:
+                return val
+        return None
 
     def contract_cb(self, opcode, data):
         # TODO: Handle this to update any changes in contracts upon callback

@@ -23,6 +23,8 @@ CONFIG = {
         "cert-dir": os.path.join(base_dir, "pki/certs"),
         "ca-cert-name": "root-ca.cert",
         "ca-pkey-name": "root-ca.pkey",
+        "ra-cert-name": "ra.cert",
+        "ra-pkey-name": "ra.pkey",
         "client-cert-name": "client.cert",
         "server-cert-name": "server.cert",
         "default-validity-days": 365

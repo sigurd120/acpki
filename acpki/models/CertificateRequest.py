@@ -1,7 +1,7 @@
 class CertificateRequest(object):
     def __init__(self, origin, destination):
-        self.origin = origin
-        self.destination = destination
+        self.client = origin
+        self.server = destination
 
-        self.issue = False
-        self.cert = None  # TODO: Will be used to check a certificate against Cisco ACI
+    def equals(self, request):
+        return self.client.equals(request.origin) and self.server.equals(request.destination)

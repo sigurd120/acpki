@@ -1,2 +1,2 @@
 from CertificateManager import CertificateManager
-from authority import CA, RA
+from authorities import CA, RA

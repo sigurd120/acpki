@@ -15,7 +15,7 @@ class CertificateManager:
         pass
 
     @staticmethod
-    def create_csr(key_pair, digest="md5", **attributes):
+    def create_csr(key_pair, digest="sha256", **attributes):
         """
         Generates a certificate signing request (CSR) with the default encryption type and key size.
         :param key_pair:        Key pair for the CSR
