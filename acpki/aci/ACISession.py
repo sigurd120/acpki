@@ -171,8 +171,8 @@ class ACISession:
                 with open(self.token_file, "w") as f:
                     f.write(self.token)
                     print("Token saved in file.")
-            except IOError:
-                raise SystemError("Could not save token to file.")
+            except IOError as e:
+                raise SystemError("Could not save token to file: {}".format(e))
 
         return resp
 
