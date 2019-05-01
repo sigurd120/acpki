@@ -153,10 +153,14 @@ class CertificateManager:
 
     @staticmethod
     def load_cert(file_name):
+        if not CertificateManager.cert_file_exists(file_name):
+            return None
         cert_file = open(CertificateManager.get_cert_path(file_name), "rt").read()
         return crypto.load_certificate(crypto.FILETYPE_PEM, cert_file)
 
     @staticmethod
     def load_pkey(file_name):
+        if not CertificateManager.cert_file_exists(file_name):
+            return None
         pkey_file = open(CertificateManager.get_cert_path(file_name), "rt").read()
         return crypto.load_privatekey(crypto.FILETYPE_PEM, pkey_file)

@@ -1,9 +1,9 @@
-class EP:
-    def __init__(self, name, address, epg, dns=None):
+class EP(object):
+    def __init__(self, name, address=None, port=None, epg=None):
         self.name = name
         self.address = address
+        self.port = port
         self.epg = epg
-        self.dns = dns
 
         self.certificates = {}
 

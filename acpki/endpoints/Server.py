@@ -3,17 +3,20 @@ from OpenSSL import SSL
 from acpki.util.exceptions import *
 from acpki.pki import CertificateManager
 from acpki.config import CONFIG
-from . import CommAgent, Client
+from acpki.endpoints import CommAgent
+from acpki.models import CertificateRequest
 
 
 class Server(CommAgent):
     """
     This simple Server class accepts Client connections and echoes back messages that it receives.
     """
-    def __init__(self):
-        self.private_key = CONFIG["pki"]["server-pkey-name"]
-        self.certificate = CONFIG["pki"]["server-cert-name"]
-        self.ca_certificate = CONFIG["pki"]["ca-cert-name"]
+    def __init__(self, ca):
+        self.ca = ca
+        self.private_key = CertificateManager.load_pkey(CONFIG["pki"]["server-pkey-name"])
+        self.certificate = CertificateManager.load_cert(CONFIG["pki"]["server-cert-name"])
+        self.ca_certificate = ca.get_root_certificate()
+        self.ra = ca.get_ra()
 
         self.context = self.get_context()
         self.connection = None
@@ -24,8 +27,13 @@ class Server(CommAgent):
         super(Server, self).__init__()
 
     def server_setup(self):
+        # Check that context exists
         if self.context is None:
             raise ConfigError("Server setup failed because context was undefined.")
+
+        # Request certificate if one does not already exist
+
+        # Create socket and start listening
         try:
             self.connection = SSL.Connection(self.context, socket.socket(socket.AF_INET, socket.SOCK_STREAM))
             self.connection.bind((self.serv_addr, self.serv_port))

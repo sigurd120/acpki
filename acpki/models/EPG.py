@@ -1,7 +1,7 @@
 import json
 
 
-class EPG:
+class EPG(object):
     def __init__(self, dn, name):
         """
         :param json_epg:    JSON string that represents the EPG. Not providing JSON will result in ALL attributes being

@@ -11,10 +11,10 @@ class RA:
     """
     The Registration Authority (RA) is responsible for issuing certificates to endpoints who are allowed to communicate.
     """
-    def __init__(self, psa, ca):
+    def __init__(self, ca, psa):
         # Arguments
-        self.psa = psa
         self.ca = ca
+        self.psa = psa
         self.cert = None
         self.verbose = CONFIG["verbose"]
 
@@ -62,11 +62,13 @@ class RA:
         # Check if connection is allowed
         if self.psa.connection_allowed(request.client, request.server):
             # Connection allowed
-            keys = CertificateManager.create_key_pair(self.default_key_type, self.default_key_size)
             ou = self.register_ou(request)
-            csr = CertificateManager.create_csr(keys, C="NO", ST="Oslo", L="Oslo", O=self.organisation, OU=ou,
-                                                CN=request.client.address)
-            crt = CertificateManager.create_cert(csr, self.get_next_serial(), self.ca)
+
+            # TODO: Override selected fields from CSR before signing the certificate, including OU field !important
+            crt = CertificateManager.create_cert(request.csr, self.get_next_serial(), self.ca.get_issuer(),
+                                                 self.ca.get_keys())
+
+            return crt
         else:
             # Connection not allowed
             print("Connection not allowed between {0} and {1}. Certificate refused."
@@ -99,9 +101,11 @@ class CA:
     reference to a CA can directly request the private key and sign certificates acting like a CA. It is only developed
     to look like the architecture of a realistic and secure implementation.
     """
-    def __init__(self):
+    def __init__(self, psa):
         self.root_cert = self.get_root_certificate()
         self.keys = self.get_keys()  # Must be called after get_root_certificate() to ensure synchronised
+        self.psa = psa
+        self.ra = RA(self, self.psa)
 
     def validate_cert(self, cvr):
         """
@@ -111,8 +115,11 @@ class CA:
         :return:        The result of the certificate validation
         """
 
+    def get_issuer(self):
+        return self.root_cert.get_issuer()
 
-
+    def get_ra(self):
+        return self.ra
 
     @staticmethod
     def get_root_certificate():
@@ -142,7 +149,7 @@ class CA:
 # Temporarily and for testing purposes only
 if __name__ == "__main__":
     psa = PSA()
-    ca = CA()
-    ra = RA(psa, ca)
+    ca = CA(psa)
+    ra = ca.get_ra()
     serial = ra.get_next_serial()
     print(serial)

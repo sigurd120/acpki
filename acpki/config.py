@@ -12,9 +12,10 @@ CONFIG = {
         "password": "ciscopsdt",
         "cookie-file": "aci/private/cookie.txt",
         "token-file": "aci/private/token.txt",
-        "crt-file": None,  # Setting this to None disables certificate validation, even if "use-tls" is True
+        "crt-file": None,   # Setting this to None disables certificate validation, even if "use-tls" is True. This is
+                            # required when using the APIC Sandbox from Cisco.
         "refresh-interval": 45,
-        "ws-timeout": 60
+        "ws-timeout": 60,
         },
     "base-dir": base_dir,
     "verbose": True,
@@ -28,6 +29,16 @@ CONFIG = {
         "client-pkey-name": "client.pkey",
         "server-cert-name": "server.cert",
         "server-pkey-name": "server.pkey",
-        "default-validity-days": 365
+        "default-validity-days": 365,
+    },
+    "endpoints": {
+        "client-name": "client-endpoint",
+        "client-addr": "127.0.0.1",
+        "client-port": 13150,
+        "client-epg": "epg-cli",
+        "server-name": "server-endpoint",
+        "server-addr": "127.0.0.1",
+        "server-port": 13151,
+        "server-epg": "epg-serv",
     }
 }
