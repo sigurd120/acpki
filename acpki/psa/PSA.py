@@ -1,8 +1,9 @@
 import json, string, random
 from acpki.aci import ACIAdapter
-from acpki.models import EPG
+from acpki.models import EPG, CertificateValidationRequest
 from acpki.util.randomness import random_string
 from acpki.util.exceptions import NotFoundError
+from acpki.config import CONFIG
 
 
 class PSA:
@@ -13,7 +14,7 @@ class PSA:
     unavailable for a while during runtime.
     """
     def __init__(self):
-        self.verbose = True
+        self.verbose = CONFIG["verbose"]
         self.epgs = []
         self.contracts = []
         self.ous = {}
@@ -61,6 +62,22 @@ class PSA:
 
     def validate_contract(self, contract):
         raise NotImplementedError
+
+    def validate_certificate(self, cvr):
+        """
+        Validate a certificate based on a Certificate Validation Request (CVR).
+        :param cvr:     The CVR to validate
+        :return:        True if successful, False otherwise
+        """
+        # Validate request
+        if not isinstance(cvr, CertificateValidationRequest):
+            raise ValueError("CVR must be of type CertificateValidationRequest!")
+        errors = cvr.get_errors()
+        if errors is not None:
+            raise ValueError(errors)
+
+        # Check contract between EPGs
+
 
     def connection_allowed(self, origin, destination):
         contracts = self.get_contracts(origin, destination)

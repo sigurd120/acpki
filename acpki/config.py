@@ -1,7 +1,6 @@
 import os
 
 base_dir = os.path.dirname(__file__)
-
 CONFIG = {
     "apic": {
         "name": "sandbox-apic",
@@ -26,7 +25,9 @@ CONFIG = {
         "ra-cert-name": "ra.cert",
         "ra-pkey-name": "ra.pkey",
         "client-cert-name": "client.cert",
+        "client-pkey-name": "client.pkey",
         "server-cert-name": "server.cert",
+        "server-pkey-name": "server.pkey",
         "default-validity-days": 365
     }
 }

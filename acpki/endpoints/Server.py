@@ -1,7 +1,9 @@
 import sys, socket, select, atexit
 from OpenSSL import SSL
 from acpki.util.exceptions import *
-from acpki.pki import CommAgent, CertificateManager
+from acpki.pki import CertificateManager
+from acpki.config import CONFIG
+from . import CommAgent, Client
 
 
 class Server(CommAgent):
@@ -9,9 +11,9 @@ class Server(CommAgent):
     This simple Server class accepts Client connections and echoes back messages that it receives.
     """
     def __init__(self):
-        self.private_key = "server.pkey"
-        self.certificate = "server.cert"
-        self.ca_certificate = "ca.cert"
+        self.private_key = CONFIG["pki"]["server-pkey-name"]
+        self.certificate = CONFIG["pki"]["server-cert-name"]
+        self.ca_certificate = CONFIG["pki"]["ca-cert-name"]
 
         self.context = self.get_context()
         self.connection = None

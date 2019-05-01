@@ -1,17 +1,18 @@
 import sys
 from socket import SOCK_STREAM, socket, AF_INET, error as SocketError
 from OpenSSL import SSL
-from acpki.pki import CommAgent, CertificateManager
+from acpki.pki import CertificateManager
 from acpki.util.exceptions import *
 from acpki.config import CONFIG
+from . import CommAgent, Server
 
 
 class Client(CommAgent):
     def __init__(self):
         # Config
-        self.private_key = "client.pkey"
-        self.certificate = "client.cert"
-        self.ca_certificate = "ca.cert"
+        self.private_key = CONFIG["pki"]["client-pkey-name"]
+        self.certificate = CONFIG["pki"]["client-cert-name"]
+        self.ca_certificate = CONFIG["pki"]["ca-cert-name"]
 
         self.context = self.get_context()
         self.connection = None
