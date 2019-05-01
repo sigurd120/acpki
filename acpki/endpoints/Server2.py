@@ -4,7 +4,7 @@ from acpki.models import EP, CertificateRequest
 from acpki.config import CONFIG
 from acpki.util.exceptions import ConnectionError
 
-import socket, select
+import sys, socket, select, atexit
 from OpenSSL import SSL
 
 
@@ -33,6 +33,7 @@ class Server2(EP):
         self.wlist = {}         # Writer list (clients)
 
         # Setup
+        atexit.register(self.disconnect)
         self.setup()
 
     def setup(self):
@@ -73,8 +74,9 @@ class Server2(EP):
 
         # Create context
         self.context = SSL.Context(SSL.TLSv1_2_METHOD)
-        self.context.set_options(SSL.OP_NO_SSLv2)
-        self.context.set_options(SSL.OP_NO_SSLv3)
+        #self.context.set_options(SSL.OP_NO_SSLv2)
+        #self.context.set_options(SSL.OP_NO_SSLv3)
+        self.context.set_options(SSL.OP_NO_TLSv1_2)
         self.context.set_verify(SSL.VERIFY_PEER|SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self.ssl_verify_cb)
         self.context.set_ocsp_server_callback(self.ocsp_cb, data=None)  # TODO: Add data that identifies endpoint
 
@@ -89,12 +91,24 @@ class Server2(EP):
 
         # TODO: Add try catch
         self.connection = SSL.Connection(self.context, socket.socket(socket.AF_INET, socket.SOCK_STREAM))
-        self.connection.bind((self.address, self.port))
-        self.connection.set_accept_state()
-        self.connection.listen(3)
-        self.connection.setblocking(0)
+
+        try:
+            self.connection.bind((self.address, self.port))
+            self.connection.set_accept_state()
+            self.connection.listen(3)
+            self.connection.setblocking(0)
+        except:
+            self.disconnect()
+            sys.exit(1)
 
         self.listen()
+
+    def disconnect(self):
+        print("Server is shutting down...")
+        if self.connection is not None:
+            self.connection.close()
+            self.connection = None
+            print("Connection closed")
 
     def drop_client(self, cli, errors=None):
         if errors:
@@ -150,11 +164,12 @@ class Server2(EP):
             cli.close()
         self.connection.close()
 
-    def ssl_verify_cb(self):
-        raise NotImplementedError
+    def ssl_verify_cb(self, *args):
+        print("SSL Server verify cb")
 
-    def ocsp_cb(self):
-        raise NotImplementedError
+    def ocsp_cb(self, conn, data=None):
+        print("OCSP Server Callback")
+        return b"This is a byte string"
 
 
 if __name__ == "__main__":

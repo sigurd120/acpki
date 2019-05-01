@@ -60,19 +60,32 @@ class RA:
             raise RequestError("Certificate request invalid. Must be of type CertificateRequest!")
 
         # Check if connection is allowed
-        if self.psa.connection_allowed(request.client, request.server):
+        if self.psa.connection_allowed(request.origin, request.destination):
             # Connection allowed
             ou = self.register_ou(request)
 
-            # TODO: Override selected fields from CSR before signing the certificate, including OU field !important
+            # TODO: Override selected fields from CSR before signing the certificate, including OU field
+            # TODO: Currently CA private key is used for signing. Consider changing to RA.
+            subject = request.csr.get_subject()
+
+            # Override attributes in the CSR (if they are defined)
+            setattr(subject, "C", "NO")
+            setattr(subject, "ST", "Oslo")
+            setattr(subject, "L", "Oslo")
+            setattr(subject, "O", "AC-PKI Corp")
+            setattr(subject, "OU", ou)
+            setattr(subject, "CN", request.origin.name)
+
             crt = CertificateManager.create_cert(request.csr, self.get_next_serial(), self.ca.get_issuer(),
                                                  self.ca.get_keys())
+
+
 
             return crt
         else:
             # Connection not allowed
             print("Connection not allowed between {0} and {1}. Certificate refused."
-                  .format(request.client, request.server))
+                  .format(request.origin, request.destination))
             return None
 
     def register_ou(self, request):

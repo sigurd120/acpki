@@ -23,6 +23,8 @@ class PSA:
         self.main()
 
     def main(self):
+        """
+        TODO: Connect to ACIAdapter when APIC Sandbox is back online
         self.adapter.connect(auto_prepare=True)
 
         # Load EPGs and contracts
@@ -30,6 +32,7 @@ class PSA:
         for epg in self.epgs:
             epg.consumes = self.adapter.get_consumed_contracts(epg.name, callback=self.contract_cb)
             epg.provides = self.adapter.get_provided_contracts(epg.name, callback=self.contract_cb)
+        """
 
     def get_contracts(self, origin, destination):
         """
@@ -78,7 +81,10 @@ class PSA:
             raise ValueError(errors)
 
         # Check contract between EPGs
+        if self.connection_allowed(cvr.origin, cvr.destination):
+            return True
 
+        return False
 
     def connection_allowed(self, origin, destination):
         """contracts = self.get_contracts(origin, destination)

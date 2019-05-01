@@ -69,7 +69,7 @@ class Client(EP):
         ctx.set_verify(SSL.VERIFY_PEER, self.ssl_verify_cb)
         ctx.use_privatekey(self.keys)
         ctx.use_certificate(self.cert)
-        ctx.load_verify_locations(CM.get_cert_path(self.ca_cert_name))
+        ctx.load_verify_locations(CM.get_cert_path(CONFIG["pki"]["ca-cert-name"]))
         ctx.set_ocsp_client_callback(self.ocsp_client_callback, data=1)  # TODO: Add data that identifies endpoint
 
         self.context = ctx
@@ -80,7 +80,7 @@ class Client(EP):
         try:
             # Try to establish a TLS connection
             conn = SSL.Connection(self.context, socket(AF_INET, SOCK_STREAM))
-            conn.connect((self.address, self.port))  # Setup connection and TLS
+            conn.connect((self.peer.address, self.peer.port))  # Setup connection and TLS
 
             if request_ocsp:
                 conn.request_ocsp()
@@ -110,8 +110,8 @@ class Client(EP):
         if verbose:
             print("Connection closed. ")
 
-    def ssl_verify_cb(self):
-        raise NotImplementedError
+    def ssl_verify_cb(self, *args):
+        print("SSL Client verify cb")
 
     @property
     def connected(self):
@@ -137,15 +137,11 @@ class Client(EP):
             line = sys.stdin.readline()
             if line == "" or line == "exit":
                 break
-            try:
-                self.connection.send(line)
-                sys.stdout.write(self.connection.recv(1024))
-                sys.stdout.flush()
-            except SSL.Error as error:
-                print("Connection was closed unexpectedly")
-                print("SSL ERROR:")
-                print(error)
-                break
+
+            # TODO: Add try catch
+            self.connection.send(line)
+            sys.stdout.write(self.connection.recv(1024))
+            sys.stdout.flush()
 
         self.disconnect()
 

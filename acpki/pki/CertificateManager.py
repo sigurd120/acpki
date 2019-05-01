@@ -50,7 +50,7 @@ class CertificateManager:
         :param ca               Certificate is issued to a CA (boolean)
         :param not_before:      Seconds from now when certificate should become valid.
         :param not_after:       Seconds from now when certificate should become invalid.
-        :param digest:          Digest hashing algorithm. Default: "md5"
+        :param digest:          Digest hashing algorithm. Default: "sha256"
         :return:                The certificate that was just created. None if creation failed.
         """
         cert = crypto.X509()
@@ -86,7 +86,7 @@ class CertificateManager:
         :param serial_number:   Serial number to apply for the certificate.
         :param not_before:      Seconds from now when certificate should become valid.
         :param not_after:       Seconds from now when certificate should become invalid.
-        :param digest:          Digest hashing algorithm. Default: "md5"
+        :param digest:          Digest hashing algorithm. Default: "sha256"
         :return:                The certificate that was just created. None if creation failed.
         """
         return CertificateManager.create_cert(csr, serial_number, csr.get_subject(), private_key, True, not_before,

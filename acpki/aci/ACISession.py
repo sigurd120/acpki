@@ -45,7 +45,7 @@ class ACISession:
         # Disable certificate verification -- this is not provided by Cisco ACI
         # TODO: Look into whether certificate can be validated against Cisco's root certificate
         if self.crt_file is None:
-            print("APIC Certificate verification is not disabled. For improved security, please provide a certificate "
+            print("APIC Certificate verification is disabled. For improved security, please provide a certificate "
                   "file in the configuration. ")
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
