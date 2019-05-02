@@ -1,150 +1,184 @@
+from acpki.psa import PSA
+from acpki.pki import CA, RA, CertificateManager as CM
+from acpki.models import EP, CertificateRequest
+from acpki.config import CONFIG
+from acpki.util.exceptions import ConnectionError
+
 import sys, socket, select, atexit
 from OpenSSL import SSL
-from acpki.util.exceptions import *
-from acpki.pki import CertificateManager
-from acpki.config import CONFIG
-from acpki.endpoints import CommAgent
-from acpki.models import CertificateRequest
 
 
-class Server(CommAgent):
+class Server(EP):
     """
-    This simple Server class accepts Client connections and echoes back messages that it receives.
+    This simple Server class is able to establish a TLS 1.2 connection with ONE client at a time using the certificates
+    issued by the CA and the PSA. For a connection to be approved, the corresponding EPGs must be added to the connected
+    Cisco APIC (e.g. Cisco APIC Sandbox). The particular EPs DO NOT have to be added to Cisco ACI, as these only exist
+    virtually and there is no validation of EPG relations in this prototype. The server class can be run individually,
+    and must be started before the Client class.
     """
     def __init__(self, ca):
+        super(EP, self).__init__()  # Initiate without values, override below
+
         self.ca = ca
-        self.private_key = CertificateManager.load_pkey(CONFIG["pki"]["server-pkey-name"])
-        self.certificate = CertificateManager.load_cert(CONFIG["pki"]["server-cert-name"])
-        self.ca_certificate = ca.get_root_certificate()
-        self.ra = ca.get_ra()
 
-        self.context = self.get_context()
-        self.connection = None
-        self.clients = {}
-        self.writers = {}  # TODO: Required? What is this?
+        self.ra = self.ca.get_ra()
+        self.peer = None
+        self.verbose = False
+        self.cert = None
+        self.keys = None
 
-        atexit.register(self.shutdown)
-        super(Server, self).__init__()
+        self.context = None     # Will be specified during setup()
+        self.connection = None  # SSL.Connection object, established on connect()
+        self.rlist = {}         # Reader list (clients)
+        self.wlist = {}         # Writer list (clients)
 
-    def server_setup(self):
-        # Check that context exists
+        # Setup
+        atexit.register(self.disconnect)
+        self.setup()
+
+    def setup(self):
+        # Load config
+        self.name = CONFIG["endpoints"]["server-name"]
+        self.address = CONFIG["endpoints"]["server-addr"]
+        self.port = CONFIG["endpoints"]["server-port"]
+        self.verbose = CONFIG["verbose"]
+
+        # Create Client peer
+        self.peer = EP(
+            name=CONFIG["endpoints"]["client-name"],
+            address=CONFIG["endpoints"]["client-addr"],
+            port=CONFIG["endpoints"]["client-port"],
+            epg=CONFIG["endpoints"]["client-epg"]
+        )
+
+        # Load key material to create or request connection-specific certificate
+        server_pkey_name = CONFIG["pki"]["server-pkey-name"]
+        server_cert_name = CONFIG["pki"]["server-cert-name"]
+        if not CM.cert_file_exists(server_pkey_name) or not CM.cert_file_exists(server_cert_name):
+            # Request certificate from RA
+            keys = CM.create_key_pair()
+            csr = CM.create_csr(keys)
+            request = CertificateRequest(self, self.peer, csr)
+            cert = self.ra.request_certificate(request)
+            if cert is None:  # TODO: Validate own certificate
+                raise ConnectionError("Could not retrieve certificate needed to establish TLS connection.")
+
+            # Save keys and certificate
+            CM.save_pkey(keys, server_pkey_name)
+            CM.save_cert(cert, server_cert_name)
+            self.cert = cert
+            self.keys = keys
+        else:
+            self.keys = CM.load_pkey(server_pkey_name)
+            self.cert = CM.load_cert(server_cert_name)
+
+        # Create context
+        self.context = SSL.Context(SSL.TLSv1_2_METHOD)
+        #self.context.set_options(SSL.OP_NO_SSLv2)
+        #self.context.set_options(SSL.OP_NO_SSLv3)
+        self.context.set_options(SSL.OP_NO_TLSv1_2)
+        self.context.set_verify(SSL.VERIFY_PEER|SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self.ssl_verify_cb)
+        self.context.set_ocsp_server_callback(self.ocsp_cb, data=None)  # TODO: Add data that identifies endpoint
+
+        # TODO: Add try catch here and verify context
+        self.context.use_privatekey(self.keys)
+        self.context.use_certificate(self.cert)
+        self.context.load_verify_locations(CM.get_cert_path(CONFIG["pki"]["ca-cert-name"]))
+
+    def connect(self):
         if self.context is None:
-            raise ConfigError("Server setup failed because context was undefined.")
+            raise ConnectionError("Cannot connect before context has been created.")
 
-        # Request certificate if one does not already exist
+        # TODO: Add try catch
+        self.connection = SSL.Connection(self.context, socket.socket(socket.AF_INET, socket.SOCK_STREAM))
 
-        # Create socket and start listening
         try:
-            self.connection = SSL.Connection(self.context, socket.socket(socket.AF_INET, socket.SOCK_STREAM))
-            self.connection.bind((self.serv_addr, self.serv_port))
+            self.connection.bind((self.address, self.port))
             self.connection.set_accept_state()
             self.connection.listen(3)
             self.connection.setblocking(0)
-        except SSL.Error:
-            print("Could not set up TLS connection on " + self.serv_addr + ":" + self.serv_port)
+        except:
+            self.disconnect()
             sys.exit(1)
-        else:
-            print("Server was successfully set up.")
-            self.listen()
 
-    def shutdown(self):
+        self.listen()
+
+    def disconnect(self):
         print("Server is shutting down...")
         if self.connection is not None:
             self.connection.close()
             self.connection = None
             print("Connection closed")
 
-    def get_context(self):
-        context = SSL.Context(SSL.TLSv1_2_METHOD)
-        context.set_options(SSL.OP_NO_TLSv1_2)
-        context.set_verify(SSL.VERIFY_PEER|SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self.ssl_verify_cb)
-        context.set_ocsp_server_callback(self.ocsp_server_callback)
-        try:
-            context.use_privatekey_file(CertificateManager.get_cert_path(self.private_key))
-            context.use_certificate_file(CertificateManager.get_cert_path(self.certificate))
-            context.load_verify_locations(CertificateManager.get_cert_path(self.ca_certificate))
-        except SSL.Error:
-            print("Error: Could not load key and certificate files. Please make sure that you have run the setup.py"
-                  "script before starting Server.py.")
-        return context
-
-    @staticmethod
-    def ocsp_server_callback(conn, data=None):
-        print("OCSP server callback")
-        print(data)
-        return b"This is a byte string"
-
     def drop_client(self, cli, errors=None):
-        """
-        Drop a server client, intentionally or unexpectedly.
-        :param cli:         The client to drop
-        :param errors:      Errors associated with the drop (optional)
-        """
         if errors:
-            print("Connection with client {0} was closed unexpectedly.".format(self.clients[cli]))
-            # print(errors)
+            print("Connection with client {0} was closed unexpectedly.".format(self.rlist[cli]))
         else:
-            print("Client {0} closed the connection.".format(self.clients[cli]))
-        del self.clients[cli]
-        if self.writers.has_key(cli):
-            del self.writers[cli]
-        if errors is None:
-            cli.shutdown()
-        cli.close()
+            print("{0} closed the connection.".format(self.rlist[cli]))
 
     def listen(self):
         if self.connection is None:
-            raise ConfigError("Server has not been set up correctly.")
+            raise ConnectionError("Connection attribute was undefined. Cannot listen until you have connected!")
         else:
-            print("Server is listening for clients...")
+            print("Server is listening for clients. Connect at {0}:{1}".format(self.address, self.port))
 
+        # Listen to new connections and incoming data
         while True:
             try:
-                r, w, _ = select.select([self.connection]+self.clients.keys(), self.writers.keys(), [])
-            except:
+                rlist, wlist, xlist = select.select([self.connection] + self.rlist.keys(), self.wlist.keys(), [])
+            except Exception as e:
+                print("ERROR: Connection failed, shutting down... {}".format(e))
                 break
 
-            for cli in r:
+            # Readers
+            for cli in rlist:
                 if cli == self.connection:
+                    # New client
                     cli, addr = self.connection.accept()
-                    print("Connection established with {0}:{1}".format(addr[0], addr[1]))
-                    self.clients[cli] = addr
+                    print("Established connection with client at {0}:{1}".format(addr[0], addr[1]))
+                    self.rlist[cli] = addr
                 else:
+                    # Incoming data
                     try:
-                        ret = cli.recv(1024)
-                    except (SSL.WantReadError, SSL.WantWriteError, SSL.WantX509LookupError):
-                        pass
-                    except SSL.ZeroReturnError:
-                        self.drop_client(cli)
+                        data = cli.recv(2048)
                     except SSL.Error, errors:
                         self.drop_client(cli, errors)
                     else:
-                        if not self.writers.has_key(cli):
-                            self.writers[cli] = ""
-                        self.writers[cli] = self.writers[cli] + ret
+                        if not self.wlist.has_key(cli):
+                            self.wlist[cli] = ""
+                        self.wlist[cli] = self.wlist[cli] + data
 
-            for cli in w:
+            # Writers
+            for cli in wlist:
                 try:
-                    ret = cli.send(self.writers[cli])
-                except (SSL.WantReadError, SSL.WantWriteError, SSL.WantX509LookupError):
-                    pass
+                    data = cli.send(self.wlist[cli])
                 except SSL.ZeroReturnError:
                     self.drop_client(cli)
+                except (SSL.WantReadError, SSL.WantWriteError, SSL.WantX509LookupError):
+                    pass
                 except SSL.Error, errors:
                     self.drop_client(cli, errors)
                 else:
-                    self.writers[cli] = self.writers[cli][ret:]
-                    if self.writers[cli] == "":
-                        del self.writers[cli]
+                    self.wlist[cli] = self.wlist[cli][data:]
+                    if self.wlist[cli] == "":
+                        del self.wlist[cli]
 
-        # Close active connections
-        for cli in self.clients.keys():
+        # While loop ended, close connections
+        for cli in self.rlist.keys():
             cli.close()
         self.connection.close()
 
+    def ssl_verify_cb(self, conn, cert, errno, errdepth, rcode):
+        print("SSL Server verify cb")
+        return errno == 0 and rcode != 0
+
+    def ocsp_cb(self, conn, data=None):
+        print("OCSP Server Callback")
+        return b"This is a byte string"
+
 
 if __name__ == "__main__":
-    print("Starting server...")
-    server = Server()
-    server.server_setup()
-    server.listen()
+    psa = PSA()
+    ca = CA(psa)
+    server = Server(ca)
+    print("Server was initiated")

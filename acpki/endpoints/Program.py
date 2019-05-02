@@ -1,4 +1,4 @@
-from acpki.endpoints import Client, Server2
+from acpki.endpoints import Client, Server
 from acpki.pki import CA, RA
 from acpki.psa import PSA
 import threading, time
@@ -6,7 +6,7 @@ import threading, time
 
 psa = PSA()
 ca = CA(psa)
-server = Server2(ca)
+server = Server(ca)
 client = Client(ca)
 
 

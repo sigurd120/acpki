@@ -67,6 +67,7 @@ class Client(EP):
         # Define context
         ctx = SSL.Context(SSL.TLSv1_2_METHOD)
         ctx.set_verify(SSL.VERIFY_PEER, self.ssl_verify_cb)
+        # ctx.set_verify_depth(2)
         ctx.use_privatekey(self.keys)
         ctx.use_certificate(self.cert)
         ctx.load_verify_locations(CM.get_cert_path(CONFIG["pki"]["ca-cert-name"]))
@@ -110,8 +111,8 @@ class Client(EP):
         if verbose:
             print("Connection closed. ")
 
-    def ssl_verify_cb(self, *args):
-        print("SSL Client verify cb")
+    def ssl_verify_cb(self, conn, cert, errno, errdepth, rcode):
+        return errno == 0 and rcode != 0
 
     @property
     def connected(self):
