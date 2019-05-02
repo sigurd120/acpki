@@ -127,8 +127,7 @@ class Client(EP):
         :param data:
         :return:
         """
-        print("OCSP callback")
-        print(data)
+        print("OCSP Client callback")
         return True
 
     def accept_input(self):

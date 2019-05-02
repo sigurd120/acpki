@@ -173,7 +173,7 @@ class Server(EP):
         return errno == 0 and rcode != 0
 
     def ocsp_cb(self, conn, data=None):
-        print("OCSP Server Callback")
+        print("OCSP Server callback")
         return b"This is a byte string"
 
 
