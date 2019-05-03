@@ -78,7 +78,7 @@ class Server(EP):
         #self.context.set_options(SSL.OP_NO_SSLv3)
         self.context.set_options(SSL.OP_NO_TLSv1_2)
         self.context.set_verify(SSL.VERIFY_PEER|SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self.ssl_verify_cb)
-        self.context.set_ocsp_server_callback(self.ocsp_cb, data=None)  # TODO: Add data that identifies endpoint
+        self.context.set_ocsp_server_callback(self.ocsp_server_cb, data=self.name)
 
         # TODO: Add try catch here and verify context
         self.context.use_privatekey(self.keys)
@@ -90,7 +90,11 @@ class Server(EP):
             raise ConnectionError("Cannot connect before context has been created.")
 
         # TODO: Add try catch
-        self.connection = SSL.Connection(self.context, socket.socket(socket.AF_INET, socket.SOCK_STREAM))
+
+        # Create socket and connect
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.connection = SSL.Connection(self.context, sock)
 
         try:
             self.connection.bind((self.address, self.port))
@@ -176,13 +180,20 @@ class Server(EP):
             cli.close()
         self.connection.close()
 
-    def ssl_verify_cb(self, conn, cert, errno, errdepth, rcode):
-        print("SSL Server verify cb")
-        return errno == 0 and rcode != 0
+    def ocsp_server_cb(self, conn, data=None):
+        """
+        The OCSP callback method is responsible for ensuring that the certificate is still valid. The request should be
 
-    def ocsp_cb(self, conn, data=None):
-        print("OCSP Server callback")
+        :param conn:
+        :param data:
+        :return:
+        """
+        print("OCSP callback: {}".format(data))
         return b"This is a byte string"
+
+    def ssl_verify_cb(self, conn, cert, errno, errdepth, rcode):
+        print("SSL Server verify callback")
+        return errno == 0 and rcode != 0
 
 
 if __name__ == "__main__":

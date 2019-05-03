@@ -1,5 +1,5 @@
 import uuid
-from acpki.pki import CertificateManager
+from acpki.pki import CertificateManager, OCSPResponder
 from acpki.models import CertificateRequest, CertificateValidationRequest
 from acpki.psa import PSA
 from acpki.config import CONFIG
@@ -79,8 +79,6 @@ class RA:
             crt = CertificateManager.create_cert(request.csr, self.get_next_serial(), self.ca.get_issuer(),
                                                  self.ca.get_keys())
 
-
-
             return crt
         else:
             # Connection not allowed
@@ -119,6 +117,7 @@ class CA:
         self.keys = self.get_keys()  # Must be called after get_root_certificate() to ensure synchronised
         self.psa = psa
         self.ra = RA(self, self.psa)
+        self.ocsp_responder = OCSPResponder
 
     def validate_cert(self, cvr):
         """
@@ -133,6 +132,9 @@ class CA:
 
     def get_ra(self):
         return self.ra
+
+    def get_ocsp_responder(self):
+        return self.ocsp_responder
 
     @staticmethod
     def get_root_certificate():

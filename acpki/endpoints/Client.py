@@ -14,6 +14,7 @@ class Client(EP):
         self.ca = ca
 
         self.ra = self.ca.get_ra()
+        self.ocsp_responder = self.ca.get_ocsp_responder()
 
         # Config
         self.keys = None
@@ -71,7 +72,7 @@ class Client(EP):
         ctx.use_privatekey(self.keys)
         ctx.use_certificate(self.cert)
         ctx.load_verify_locations(CM.get_cert_path(CONFIG["pki"]["ca-cert-name"]))
-        ctx.set_ocsp_client_callback(self.ocsp_client_callback, data=1)  # TODO: Add data that identifies endpoint
+        ctx.set_ocsp_client_callback(self.ocsp_client_callback, data=self.name)
 
         self.context = ctx
 
@@ -115,15 +116,11 @@ class Client(EP):
         if self.verbose:
             print("Connection closed. ")
 
-    def ssl_verify_cb(self, conn, cert, errno, errdepth, rcode):
-        return errno == 0 and rcode != 0
-
     @property
     def connected(self):
         return self.connection is not None
 
-    @staticmethod
-    def ocsp_client_callback(conn, ocsp, data=None):
+    def ocsp_client_callback(self, conn, ocsp, data=None):
         """
         Callback method for the OCSP certificate revocation check
         :param conn:    Connection object
@@ -131,8 +128,18 @@ class Client(EP):
         :param data:
         :return:
         """
-        print("OCSP Client callback")
-        return True
+        print("OCSP callback: {}".format(data))
+        """
+        if self.ocsp_responder.is_revoked(ocsp.serial_number):
+            return False
+        else:
+            return True
+        """
+        return b"Bytestring"
+
+    def ssl_verify_cb(self, conn, cert, errno, errdepth, rcode):
+        print("SSL Client verify callback")
+        return errno == 0 and rcode != 0
 
     def accept_input(self):
         print("You can now start typing input data to send it to the server. Send an empty line or type exit to end "
