@@ -1,5 +1,5 @@
 from acpki.endpoints import Client, Server
-from acpki.pki import CA, RA
+from acpki.pki import CA
 from acpki.psa import PSA
 import threading, time
 

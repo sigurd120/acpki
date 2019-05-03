@@ -99,16 +99,20 @@ class Client(EP):
             sys.exit(1)
         else:
             print("Connected successfully to server.")
-            # TODO: Validate server certificate
             self.accept_input()
 
-    def disconnect(self, verbose=True):
-        if verbose:
+    def disconnect(self):
+        if self.verbose:
             print("Disconnecting from server...")
-        self.connection.shutdown()
-        self.connection.close()
-        self.connection = None
-        if verbose:
+        try:
+            self.connection.shutdown()
+            self.connection.close()
+            self.connection = None
+        except SSL.Error as e:
+            print("Could not shut down: {}".format(e))
+            self.connection = None
+            sys.exit(0)
+        if self.verbose:
             print("Connection closed. ")
 
     def ssl_verify_cb(self, conn, cert, errno, errdepth, rcode):
@@ -135,15 +139,14 @@ class Client(EP):
               "the connection politely.")
         while True:
             line = sys.stdin.readline()
-            if line == "" or line == "exit":
-                break
+            if line == "\n" or line == "exit\n":
+                self.disconnect()
+                sys.exit(0)
 
             # TODO: Add try catch
             self.connection.send(line)
             sys.stdout.write(self.connection.recv(1024))
             sys.stdout.flush()
-
-        self.disconnect()
 
 
 if __name__ == "__main__":

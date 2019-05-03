@@ -23,7 +23,7 @@ class Server(EP):
 
         self.ra = self.ca.get_ra()
         self.peer = None
-        self.verbose = False
+        self.verbose = True
         self.cert = None
         self.keys = None
 
@@ -97,9 +97,9 @@ class Server(EP):
             self.connection.set_accept_state()
             self.connection.listen(3)
             self.connection.setblocking(0)
-        except:
-            self.disconnect()
-            sys.exit(1)
+        except Exception as e:
+            print("Server could not connect")
+            raise e
 
         self.listen()
 
@@ -114,7 +114,13 @@ class Server(EP):
         if errors:
             print("Connection with client {0} was closed unexpectedly.".format(self.rlist[cli]))
         else:
-            print("{0} closed the connection.".format(self.rlist[cli]))
+            print("Client {0} closed the connection.".format(self.rlist[cli]))
+        del self.rlist[cli]
+        if cli in self.wlist:
+            del self.wlist[cli]
+        if errors is None:
+            cli.shutdown()
+        cli.close()
 
     def listen(self):
         if self.connection is None:
@@ -141,6 +147,8 @@ class Server(EP):
                     # Incoming data
                     try:
                         data = cli.recv(2048)
+                    except SSL.ZeroReturnError:
+                        self.drop_client(cli)
                     except SSL.Error, errors:
                         self.drop_client(cli, errors)
                     else:
