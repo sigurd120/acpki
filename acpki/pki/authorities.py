@@ -117,7 +117,7 @@ class CA:
         self.keys = self.get_keys()  # Must be called after get_root_certificate() to ensure synchronised
         self.psa = psa
         self.ra = RA(self, self.psa)
-        self.ocsp_responder = OCSPResponder
+        self.ocsp_responder = OCSPResponder()
 
     def validate_cert(self, cvr):
         """

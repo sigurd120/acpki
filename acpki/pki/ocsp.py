@@ -19,7 +19,7 @@ class OCSPResponder:
             self.revoked_file_path = None
             print("Error: OCSP responder could not be initiated.")
 
-    def revoke_certificate(self, serial_number):
+    def revoke_serial(self, serial_number):
         if self.is_revoked(serial_number):
             print("Certificate \"{0}\" is already revoked.".format(serial_number))
             return None
@@ -32,7 +32,10 @@ class OCSPResponder:
         else:
             print("Certificate \"{0}\" was revoked successfully.".format(serial_number))
 
-    def unrevoke_certificate(self, serial_number):
+    def revoke_certificate(self, certificate):
+        self.revoke_serial(certificate.get_serial_number())
+
+    def unrevoke_serial(self, serial_number):
         found = False
         try:
             with open(self.revoked_file_path, "r+") as f:
@@ -51,23 +54,12 @@ class OCSPResponder:
             print("Successfully unrevoked the certificate \"{0}\"".format(serial_number))
         return found
 
+    def unrevoke_certificate(self, certificate):
+        self.unrevoke_serial(certificate.get_serial_number())
+
     def is_revoked(self, serial_number):
         revoked_file = open(self.revoked_file_path, "r")
         for line in revoked_file:
             if line.strip() == serial_number:
                 return True
         return False
-
-
-# Testing purposes only
-if __name__ == "__main__":
-    ocsp_responder = OCSPResponder()
-    ocsp_responder.revoke_certificate("blablablabla")
-    ocsp_responder.revoke_certificate("fdsadfsaksks")
-    ocsp_responder.revoke_certificate("dsaklklsdkdj")
-    ocsp_responder.revoke_certificate("blablablabfd")
-    ocsp_responder.unrevoke_certificate("blablablabla")
-    if ocsp_responder.is_revoked("blablablabla"):
-        print("Certificate is revoked.")
-    else:
-        print("Certificate is not revoked. Lucky you!")

@@ -189,7 +189,7 @@ class Server(EP):
         :return:
         """
         print("OCSP callback: {}".format(data))
-        return b"This is a byte string"
+        return str(self.cert.get_serial_number()).encode()
 
     def ssl_verify_cb(self, conn, cert, errno, errdepth, rcode):
         print("SSL Server verify callback")

@@ -67,7 +67,7 @@ class Client(EP):
 
         # Define context
         ctx = SSL.Context(SSL.TLSv1_2_METHOD)
-        ctx.set_verify(SSL.VERIFY_PEER, self.ssl_verify_cb)
+        ctx.set_verify(SSL.VERIFY_PEER|SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self.ssl_verify_cb)
         # ctx.set_verify_depth(2)
         ctx.use_privatekey(self.keys)
         ctx.use_certificate(self.cert)
@@ -124,18 +124,13 @@ class Client(EP):
         """
         Callback method for the OCSP certificate revocation check
         :param conn:    Connection object
-        :param ocsp:    TODO: Find these from OCSP doc.
-        :param data:
+        :param ocsp:    Serial number of server certificate (deviates from documented stapled OCSP assertion)
+        :param data:    Data that was defined when setting the callback method, i.e. the EP name
         :return:
         """
         print("OCSP callback: {}".format(data))
-        """
-        if self.ocsp_responder.is_revoked(ocsp.serial_number):
-            return False
-        else:
-            return True
-        """
-        return b"Bytestring"
+        print("Server serial number: {}".format(ocsp))
+        return not self.ocsp_responder.is_revoked(ocsp)  # Return True if valid, False if revoked
 
     def ssl_verify_cb(self, conn, cert, errno, errdepth, rcode):
         print("SSL Client verify callback")
