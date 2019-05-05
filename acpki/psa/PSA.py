@@ -74,15 +74,21 @@ class PSA:
         :return:        True if successful, False otherwise
         """
         # Validate request
+        """
         if not isinstance(cvr, CertificateValidationRequest):
             raise ValueError("CVR must be of type CertificateValidationRequest!")
         errors = cvr.get_errors()
         if errors is not None:
             raise ValueError(errors)
+        """
 
         # Check contract between EPGs
-        if self.connection_allowed(cvr.origin, cvr.destination):
-            return True
+        if not self.connection_allowed(cvr.origin, cvr.destination):
+            return False
+
+        # Check OU
+        subject = cvr.cert.get_subject()
+        ou = self.find_ou(subject.OU)
 
         return False
 
@@ -92,7 +98,7 @@ class PSA:
             if self.validate_contract(con):
                 return True
         return False"""
-        return True  # TODO: TEMPORARILY ALLOW ALL CONNECTIONS
+        return True  # TODO: TEMPORARILY ALLOWS ALL CONNECTIONS
 
     def register_ou(self, request):
         # Check if request is already registered

@@ -90,7 +90,7 @@ class RA:
         """
         Generate an OU reference for any given certificate. This will be used as a reference to that particular pair of
         EPGs when validating certificates in the CA. Outsourced to the PSA.
-        :param request:     The CertificateRequest to register with the PSA
+        :param request:     The CertificateValidationRequest to register with the PSA
         :return:            The OU (key) with which the request was registered
         """
         return self.psa.register_ou(request)
@@ -126,18 +126,33 @@ class CA:
         :param cvr:     Certificate validation request (instance of CertificateValidationRequest class)
         :return:        The result of the certificate validation
         """
+        return self.psa.validate_certificate(cvr)
 
     def get_issuer(self):
+        """
+        Get the issuer object for the CA
+        :return:
+        """
         return self.root_cert.get_issuer()
 
     def get_ra(self):
+        """
+        Get the RA associated with this CA
+        """
         return self.ra
 
     def get_ocsp_responder(self):
+        """
+        Get the OCSP responder associated with this CA
+        """
         return self.ocsp_responder
 
     @staticmethod
     def get_root_certificate():
+        """
+        Get the certificate for the root CA
+        :return:
+        """
         if CertificateManager.cert_file_exists(CONFIG["pki"]["ca-cert-name"]):
             # Certificate exists
             return CertificateManager.load_cert(CONFIG["pki"]["ca-cert-name"])

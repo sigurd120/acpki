@@ -4,7 +4,7 @@ from OpenSSL import SSL
 from acpki.pki import CertificateManager as CM
 from acpki.util.exceptions import *
 from acpki.config import CONFIG
-from acpki.models import EP, CertificateRequest
+from acpki.models import EP, CertificateRequest, CertificateValidationRequest
 
 
 class Client(EP):
@@ -134,7 +134,13 @@ class Client(EP):
 
     def ssl_verify_cb(self, conn, cert, errno, errdepth, rcode):
         print("SSL Client verify callback")
-        return errno == 0 and rcode != 0
+        if errno > 0 or rcode == 0:
+            return False  # Certificate validation failed
+
+        cvr = CertificateValidationRequest(self, self.peer, cert)
+        res = self.ca.validate_cert(cvr)
+
+        return res
 
     def accept_input(self):
         print("You can now start typing input data to send it to the server. Send an empty line or type exit to end "
