@@ -25,22 +25,15 @@ class Client(EP):
         self.peer = None
         self.context = None
         self.connection = None
-        self.setup()
 
-    def setup(self):
+    def setup(self, peer):
         # Load config
         self.name = CONFIG["endpoints"]["client-name"]
         self.address = CONFIG["endpoints"]["client-addr"]
         self.port = CONFIG["endpoints"]["client-port"]
         self.verbose = CONFIG["verbose"]
 
-        # Create Server peer EP
-        self.peer = EP(
-            name=CONFIG["endpoints"]["server-name"],
-            address=CONFIG["endpoints"]["server-addr"],
-            port=CONFIG["endpoints"]["server-port"],
-            epg=CONFIG["endpoints"]["server-epg"]
-        )
+        self.peer = peer
 
         # Load or request keys and certificate
         client_pkey_name = CONFIG["pki"]["client-pkey-name"]
@@ -137,15 +130,14 @@ class Client(EP):
 
     def ssl_verify_cb(self, conn, cert, errno, errdepth, rcode):
         print("SSL Client verify callback")
+
+        # Check whether conventional certificate validation was successful (CA, signature, expiration etc.)
         if errno > 0 or rcode == 0:
-            return False  # Certificate validation failed
+            return False
 
-        cvr = CertificateValidationRequest(self, self.peer, cert)
-        res = self.ca.validate_cert(cvr)
-
-        subj = cert.get_subject()
-
-        return res
+        # Validate certificate with AC-PKI through the CA and PSA
+        cvr = CertificateValidationRequest(self, self.peer, self.peer.get_cert())
+        return self.ca.validate_cert(cvr)
 
     def accept_input(self):
         print("You can now start typing input data to send it to the server. Send an empty line or type exit to end "

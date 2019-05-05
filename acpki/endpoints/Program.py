@@ -9,6 +9,8 @@ ca = CA(psa)
 server = Server(ca)
 client = Client(ca)
 
+client.setup(peer=server)
+
 
 def run_server():
     server.connect()

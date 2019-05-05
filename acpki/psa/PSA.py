@@ -93,14 +93,6 @@ class PSA:
         :param cvr:     The CVR to validate
         :return:        True if successful, False otherwise
         """
-        # Validate request
-        """
-        if not isinstance(cvr, CertificateValidationRequest):
-            raise ValueError("CVR must be of type CertificateValidationRequest!")
-        errors = cvr.get_errors()
-        if errors is not None:
-            raise ValueError(errors)
-        """
 
         # Check contract between EPGs
         if not self.connection_allowed(cvr.origin, cvr.destination):

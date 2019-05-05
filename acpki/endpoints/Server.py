@@ -85,6 +85,9 @@ class Server(EP):
         self.context.use_certificate(self.cert)
         self.context.load_verify_locations(CM.get_cert_path(CONFIG["pki"]["ca-cert-name"]))
 
+    def get_cert(self):
+        return self.cert
+
     def connect(self):
         if self.context is None:
             raise ConnectionError("Cannot connect before context has been created.")
