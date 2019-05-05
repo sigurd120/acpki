@@ -40,5 +40,8 @@ CONFIG = {
         "server-addr": "127.0.0.1",
         "server-port": 13151,
         "server-epg": "epg-serv",
+    },
+    "psa": {
+        "ous-file": os.path.join(base_dir, "psa/ous.txt"),
     }
 }

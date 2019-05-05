@@ -1,4 +1,4 @@
-import json, string, random
+import json, string, random, os
 from acpki.aci import ACIAdapter
 from acpki.models import EPG, CertificateValidationRequest
 from acpki.util.randomness import random_string
@@ -18,12 +18,17 @@ class PSA:
         self.epgs = []
         self.contracts = []
         self.ous = {}
+        self.ous_file = CONFIG["psa"]["ous-file"]
 
         self.adapter = ACIAdapter()
         self.main()
 
     def main(self):
+
+        self.setup()
+
         """
+        --- DISABLED TO AVOID USING CISCO APIC SANDBOX WHEN NOT NECESSARY ---
         TODO: Connect to ACIAdapter when APIC Sandbox is back online
         self.adapter.connect(auto_prepare=True)
 
@@ -33,6 +38,21 @@ class PSA:
             epg.consumes = self.adapter.get_consumed_contracts(epg.name, callback=self.contract_cb)
             epg.provides = self.adapter.get_provided_contracts(epg.name, callback=self.contract_cb)
         """
+
+
+    def setup(self):
+        # Check that OUs file exists and load
+        if os.path.exists(self.ous_file):
+            # Load OUs
+            with open(self.ous_file, "r") as f:
+                data = f.readlines()
+                for line in data:
+                    data = data.split(";")
+                    print(data)
+        else:
+            open(self.ous_file, "w")
+
+
 
     def get_contracts(self, origin, destination):
         """
@@ -90,7 +110,7 @@ class PSA:
         subject = cvr.cert.get_subject()
         ou = self.find_ou(subject.OU)
 
-        return False
+        return True  # TODO: Change to False when implemented correctly
 
     def connection_allowed(self, origin, destination):
         """contracts = self.get_contracts(origin, destination)
@@ -100,17 +120,17 @@ class PSA:
         return False"""
         return True  # TODO: TEMPORARILY ALLOWS ALL CONNECTIONS
 
-    def register_ou(self, request):
+    def register_ou(self, eps):
         # Check if request is already registered
         for key, val in self.ous.iteritems():
-            if val.equals(request):
+            if val.equals(eps):
                 return key  # Return the OU for which the request was found
 
         # Not found - create
         ou = random_string(32)  # Generate random string, no need to check for duplicates... P(Collision) =~ 2.3e+57
-        self.ous[ou] = request
+        self.ous[ou] = eps
         if self.verbose:
-            print("Registered new OU {}".format(ou))
+            print("Registered new OU {0} between EPs {1} and {2}".format(ou, eps[0], eps[1]))
         return ou
 
     def remove_ou(self, ou):

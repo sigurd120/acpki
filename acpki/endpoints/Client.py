@@ -68,7 +68,7 @@ class Client(EP):
         # Define context
         ctx = SSL.Context(SSL.TLSv1_2_METHOD)
         ctx.set_verify(SSL.VERIFY_PEER|SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self.ssl_verify_cb)
-        # ctx.set_verify_depth(2)
+        ctx.set_verify_depth(2)
         ctx.use_privatekey(self.keys)
         ctx.use_certificate(self.cert)
         ctx.load_verify_locations(CM.get_cert_path(CONFIG["pki"]["ca-cert-name"]))
@@ -79,6 +79,7 @@ class Client(EP):
     def connect(self, request_ocsp=True):
         if self.context is None:
             raise ConfigError("Client setup failed because context was undefined.")
+
         try:
             # Try to establish a TLS connection
             conn = SSL.Connection(self.context, socket(AF_INET, SOCK_STREAM))
@@ -100,6 +101,8 @@ class Client(EP):
             sys.exit(1)
         else:
             print("Connected successfully to server.")
+            # Check certificate against CA
+            crt = self.connection.get_peer_certificate()
             self.accept_input()
 
     def disconnect(self):
@@ -139,6 +142,8 @@ class Client(EP):
 
         cvr = CertificateValidationRequest(self, self.peer, cert)
         res = self.ca.validate_cert(cvr)
+
+        subj = cert.get_subject()
 
         return res
 

@@ -62,9 +62,8 @@ class RA:
         # Check if connection is allowed
         if self.psa.connection_allowed(request.origin, request.destination):
             # Connection allowed
-            ou = self.register_ou(request)
+            ou = self.register_ou((request.origin.name, request.destination.name))
 
-            # TODO: Override selected fields from CSR before signing the certificate, including OU field
             # TODO: Currently CA private key is used for signing. Consider changing to RA.
             subject = request.csr.get_subject()
 
@@ -86,14 +85,14 @@ class RA:
                   .format(request.origin, request.destination))
             return None
 
-    def register_ou(self, request):
+    def register_ou(self, eps):
         """
         Generate an OU reference for any given certificate. This will be used as a reference to that particular pair of
         EPGs when validating certificates in the CA. Outsourced to the PSA.
-        :param request:     The CertificateValidationRequest to register with the PSA
-        :return:            The OU (key) with which the request was registered
+        :param eps:     Tuple containing (origin, destination) EPs
+        :return:        The OU (key) with which the request was registered
         """
-        return self.psa.register_ou(request)
+        return self.psa.register_ou(eps)
 
     @staticmethod
     def get_next_serial():
