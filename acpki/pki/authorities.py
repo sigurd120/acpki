@@ -62,7 +62,7 @@ class RA:
         # Check if connection is allowed
         if self.psa.connection_allowed(request.origin, request.destination):
             # Connection allowed
-            ou = self.register_ou((request.origin.name, request.destination.name))
+            ou = self.register_ou((request.origin.epg.name, request.destination.epg.name))
 
             # TODO: Currently CA private key is used for signing. Consider changing to RA.
             subject = request.csr.get_subject()

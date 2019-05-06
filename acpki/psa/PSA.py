@@ -39,7 +39,6 @@ class PSA:
             epg.provides = self.adapter.get_provided_contracts(epg.name, callback=self.contract_cb)
         """
 
-
     def setup(self):
         # Check that OUs file exists and load
         if os.path.exists(self.ous_file):
@@ -47,12 +46,12 @@ class PSA:
             with open(self.ous_file, "r") as f:
                 data = f.readlines()
                 for line in data:
-                    data = data.split(";")
-                    print(data)
+                    vals = line.split(";")
+                    if len(vals) != 3:
+                        continue
+                    self.ous[vals[0]] = (vals[1], vals[2])
         else:
             open(self.ous_file, "w")
-
-
 
     def get_contracts(self, origin, destination):
         """
@@ -113,14 +112,32 @@ class PSA:
         return True  # TODO: TEMPORARILY ALLOWS ALL CONNECTIONS
 
     def register_ou(self, eps):
+        """
+        Register a new OU and store the provided tuple of endpoints in the OUs dictionary. The OU returned from this
+        method should be used in the OU subject field of the certificate issued.
+        :param eps:     Tuple containing the origin and destination endpoint, respectively
+        :return:        The OU with which the tuple was registered in the dictionary
+        """
+        # Check value of eps parameter
+        if not isinstance(eps, tuple) or len(eps) != 2:
+            raise ValueError("Endpoint must be tuple of length 2.")
+
         # Check if request is already registered
         for key, val in self.ous.iteritems():
-            if val.equals(eps):
+            if val == eps:
+                if self.verbose:
+                    print("OU {0} already contained endpoints {1} and {2}".format(key, eps[0], eps[1]))
                 return key  # Return the OU for which the request was found
 
         # Not found - create
         ou = random_string(32)  # Generate random string, no need to check for duplicates... P(Collision) =~ 2.3e+57
         self.ous[ou] = eps
+
+        # Save to file
+        with open(self.ous_file, "a") as f:
+            f.write("{0};{1};{2}\n".format(ou, eps[1], eps[2]))
+
+        # Print and return
         if self.verbose:
             print("Registered new OU {0} between EPs {1} and {2}".format(ou, eps[0], eps[1]))
         return ou
