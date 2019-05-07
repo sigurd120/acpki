@@ -4,7 +4,7 @@ from OpenSSL import SSL
 from acpki.pki import CertificateManager as CM
 from acpki.util.exceptions import *
 from acpki.config import CONFIG
-from acpki.models import EP, CertificateRequest, CertificateValidationRequest
+from acpki.models import EP, EPG, CertificateRequest, CertificateValidationRequest
 
 
 class Client(EP):
@@ -26,13 +26,14 @@ class Client(EP):
         self.context = None
         self.connection = None
 
-    def setup(self, peer):
+    def setup(self, peer, epg=None):
         # Load config
         self.name = CONFIG["endpoints"]["client-name"]
         self.address = CONFIG["endpoints"]["client-addr"]
         self.port = CONFIG["endpoints"]["client-port"]
         self.verbose = CONFIG["verbose"]
 
+        self.epg = epg
         self.peer = peer
 
         # Load or request keys and certificate

@@ -1,6 +1,7 @@
 from acpki.endpoints import Client, Server
 from acpki.pki import CA
 from acpki.psa import PSA
+from acpki.config import CONFIG
 import threading, time
 
 
@@ -9,8 +10,8 @@ ca = CA(psa)
 server = Server(ca)
 client = Client(ca)
 
-client.setup(peer=server)
-
+server.setup(peer=client, epg=psa.get_epg(CONFIG["endpoints"]["server-epg"]))
+client.setup(peer=server, epg=psa.get_epg(CONFIG["endpoints"]["client-epg"]))
 
 def run_server():
     server.connect()

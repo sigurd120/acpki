@@ -44,6 +44,12 @@ class PSA:
         else:
             open(self.ous_file, "w")
 
+    def get_epg(self, epg_name):
+        for epg in self.epgs:
+            if epg.name == epg_name:
+                return epg
+        return None
+
     def load_epgs_and_contracts(self):
         # Load EPGs and contracts
         self.epgs = self.adapter.get_epgs(self.sub_cb)
@@ -62,13 +68,15 @@ class PSA:
 
         # Find contracts consumed by origin and provided by destination
         for cons in origin.epg.consumes:
-            if cons in destination.epg.provides:
-                contracts.append(cons)
+            for prov in destination.epg.provides:
+                if cons.uid == prov.uid:
+                    contracts.append(cons)
 
         # Find contracts provided by origin and consumed by destination
         for prov in origin.epg.provides:
-            if prov in destination.epg.consumes:
-                contracts.append(prov)
+            for cons in destination.epg.consumes:
+                if prov.uid == cons.uid:
+                    contracts.append(prov)
 
         return contracts
 
@@ -88,7 +96,14 @@ class PSA:
 
         # Check OU
         subject = cvr.cert.get_subject()
-        ou = self.find_ou(subject.OU)
+        ou = None
+
+        for key, val in self.ous.iteritems():
+            if val == (cvr.origin, cvr.destination):
+                ou = key
+
+        if ou is None:
+            return False
 
         return True  # TODO: Change to False when implemented correctly
 
@@ -141,12 +156,6 @@ class PSA:
         :return:        True if OU was found, False otherwise
         """
         return self.ous.pop(ou, None) is not None
-
-    def find_ou(self, ou):
-        for key, val in self.ous.iteritems():
-            if key == ou:
-                return val
-        return None
 
     def sub_cb(self, opcode, data):
         """

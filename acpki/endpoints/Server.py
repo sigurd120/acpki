@@ -34,14 +34,16 @@ class Server(EP):
 
         # Setup
         atexit.register(self.disconnect)
-        self.setup()
 
-    def setup(self):
+    def setup(self, peer=None, epg=None):
         # Load config
         self.name = CONFIG["endpoints"]["server-name"]
         self.address = CONFIG["endpoints"]["server-addr"]
         self.port = CONFIG["endpoints"]["server-port"]
         self.verbose = CONFIG["verbose"]
+
+        self.epg = epg
+        self.peer = peer
 
         # Create Client peer
         self.peer = EP(
