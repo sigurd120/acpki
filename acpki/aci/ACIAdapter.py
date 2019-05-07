@@ -110,6 +110,7 @@ class ACIAdapter:
         Get all contracts provided by the provider EPG specified
         :param provider:    The providing EPG
         :param cls:         Subtree class, must be fvRsProv for provided contracts or fvRsCons for consumed contracts
+        :param callback:    The callback method to which subscription data will be forwarded
         :return:
         """
         if cls != "fvRsProv" and cls != "fvRsCons":
@@ -123,7 +124,7 @@ class ACIAdapter:
         subscribe = callback is not None
         contracts = []
 
-        json_resp = self.session.get(path, "json", subscribe=subscribe, params=params, silent=True)
+        json_resp = self.session.get(path, "json", subscribe=subscribe, params=params, silent=True, sub_cb=callback)
         content = json.loads(json_resp.content)
 
         for item in content["imdata"]:

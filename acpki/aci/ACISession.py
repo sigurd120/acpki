@@ -95,6 +95,9 @@ class ACISession:
         if sub_id in self.cb_methods.keys():
             # Callback method found
             cb = self.cb_methods[sub_id]
+            if cb is None:
+                print("Callback method was set to None. Ignoring data!")
+                return
             print("Found matching callback method. Forwarding data to that...")
             cb(opcode, data)
         else:

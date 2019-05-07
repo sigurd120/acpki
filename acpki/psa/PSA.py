@@ -27,17 +27,14 @@ class PSA:
 
         self.setup()
 
-        """
-        --- DISABLED TO AVOID USING CISCO APIC SANDBOX WHEN NOT NECESSARY ---
-        TODO: Connect to ACIAdapter when APIC Sandbox is back online
         self.adapter.connect(auto_prepare=True)
 
         # Load EPGs and contracts
         self.epgs = self.adapter.get_epgs(self.sub_cb)
         for epg in self.epgs:
-            epg.consumes = self.adapter.get_consumed_contracts(epg.name, callback=self.contract_cb)
-            epg.provides = self.adapter.get_provided_contracts(epg.name, callback=self.contract_cb)
-        """
+            epg.consumes = self.adapter.get_consumed_contracts(epg.name, callback=self.sub_cb)
+            epg.provides = self.adapter.get_provided_contracts(epg.name, callback=self.sub_cb)
+
 
     def setup(self):
         # Check that OUs file exists and load
@@ -176,7 +173,7 @@ class PSA:
             if "fvAEPg" in item:
                 self.epg_cb(item["fvAEPg"]["attributes"])
             else:
-                pass  # TODO: Add other types of callbacks
+                print("Unknown subscription callback: {}".format(item))
 
     def epg_cb(self, attrs):
         """
