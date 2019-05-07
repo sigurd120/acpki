@@ -1,6 +1,6 @@
 import json, string, random, os
 from acpki.aci import ACIAdapter
-from acpki.models import EPG, CertificateValidationRequest
+from acpki.models import EPG, CertificateValidationRequest, Contract
 from acpki.util.randomness import random_string
 from acpki.util.exceptions import NotFoundError
 from acpki.config import CONFIG
@@ -16,7 +16,6 @@ class PSA:
     def __init__(self):
         self.verbose = CONFIG["verbose"]
         self.epgs = []
-        self.contracts = []
         self.ous = {}
         self.ous_file = CONFIG["psa"]["ous-file"]
 
@@ -29,12 +28,7 @@ class PSA:
 
         self.adapter.connect(auto_prepare=True)
 
-        # Load EPGs and contracts
-        self.epgs = self.adapter.get_epgs(self.sub_cb)
-        for epg in self.epgs:
-            epg.consumes = self.adapter.get_consumed_contracts(epg.name, callback=self.sub_cb)
-            epg.provides = self.adapter.get_provided_contracts(epg.name, callback=self.sub_cb)
-
+        self.load_epgs_and_contracts()
 
     def setup(self):
         # Check that OUs file exists and load
@@ -49,6 +43,13 @@ class PSA:
                     self.ous[vals[0]] = (vals[1], vals[2])
         else:
             open(self.ous_file, "w")
+
+    def load_epgs_and_contracts(self):
+        # Load EPGs and contracts
+        self.epgs = self.adapter.get_epgs(self.sub_cb)
+        for epg in self.epgs:
+            epg.consumes = self.adapter.get_consumed_contracts(epg.name, callback=self.sub_cb)
+            epg.provides = self.adapter.get_provided_contracts(epg.name, callback=self.sub_cb)
 
     def get_contracts(self, origin, destination):
         """
@@ -153,10 +154,6 @@ class PSA:
                 return val
         return None
 
-    def contract_cb(self, opcode, data):
-        # TODO: Handle this to update any changes in contracts upon callback
-        print("{0} {1}".format(opcode, data))
-
     def sub_cb(self, opcode, data):
         """
         Subscription callback method, which is called whenever a subscription receives a new update. The method will
@@ -171,7 +168,14 @@ class PSA:
         # Iterate through updates in subscription data and call specific callback method
         for item in json_obj["imdata"]:
             if "fvAEPg" in item:
+                # Endpoint groups updated
                 self.epg_cb(item["fvAEPg"]["attributes"])
+            elif "fvRsProv" in item:
+                # Provided contracts updated
+                self.contract_cb("prov", item["fvRsProv"]["attributes"])
+            elif "fvRsCons" in item:
+                # Consumed contracts updated
+                self.contract_cb("cons", item["fvRsCons"]["attributes"])
             else:
                 print("Unknown subscription callback: {}".format(item))
 
@@ -212,6 +216,52 @@ class PSA:
         elif self.verbose:
             # Unknown status
             print("Skipped unknown operation \"{0}\" for EPG: {1}".format(attrs["status"], attrs["dn"]))
+
+    def contract_cb(self, action, attrs):
+        if attrs["status"] == "created":
+            # Create contract
+            con = Contract(attrs["uid"], attrs["tnVzBrCPName"])
+            epg_name = attrs["dn"].split("/")[3][4:]  # Workaround to extract the EPG name from contract DN
+            found = False
+            for epg in self.epgs:
+                if epg.name == epg_name:
+                    found = True
+                    if action == "prov":
+                        epg.provides.append(con)
+                    else:
+                        epg.consumes.append(con)
+            if not found:
+                # Reload EPGs and contracts
+                print("Error! Could not find EPG {} and could therefore not append new contract from callback."
+                      .format(epg_name))
+                self.load_epgs_and_contracts()
+        elif attrs["status"] == "deleted":
+            # Delete contract
+            con_name = attrs["tnVzBrCPName"]
+            epg_name = attrs["dn"].split("/")[3][4:]
+            found = False
+            for epg in self.epgs:
+                if epg.name == epg_name:
+                    # Found the correct EPG
+                    if action == "cons":
+                        # Delete consumed contract
+                        for i, con in enumerate(epg.consumes):
+                            if con.name == con_name:
+                                found = True
+                                epg.consumes.pop(i)
+                    else:
+                        # Delete provided contract
+                        for i, con in enumerate(epg.provides):
+                            if con.name == con_name:
+                                found = True
+                                epg.provides.pop(i)
+            if not found:
+                print("Error! Could not delete contract {0} because it was not found in EPG {1}."
+                      .format(con_name, epg_name))
+        elif attrs["updated"]:
+            pass  # No action required
+        else:
+            print("Unknown status skipped for contract callback: {}".format(attrs["status"]))
 
 
 if __name__ == "__main__":
