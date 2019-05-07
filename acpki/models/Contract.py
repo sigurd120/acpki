@@ -6,3 +6,6 @@ class Contract:
         self.uid = uid
         self.name = name
         self.dn = dn
+
+    def equals(self, con):
+        return self.dn == con.dn

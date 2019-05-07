@@ -53,33 +53,24 @@ class PSA:
 
     def get_contracts(self, origin, destination):
         """
-        Get all contracts between the specified origin and destination EPG.
-        :param origin:          Origin of the contract (consumer)
-        :param destination:     Destination of the contract (provider)
+        Get all contracts between origin and destination endpoints' EPGs.
+        :param origin:          Origin EP of the contract (consumer)
+        :param destination:     Destination EP of the contract (provider)
         :return:                List of contracts
         """
-        # TODO: Fix issues here
-        origin_epg = origin.epg
-        destination_epg = destination.epg
         contracts = []
 
-        # Find EPG matches
-        for epg in self.epgs:
-            if epg.dn == origin.dn:
-                origin_epg = epg
-            elif epg.dn == destination.dn:
-                destination_epg = epg
+        # Find contracts consumed by origin and provided by destination
+        for cons in origin.epg.consumes:
+            if cons in destination.epg.provides:
+                contracts.append(cons)
 
-        if origin_epg is None or destination_epg is None:
-            print("ERROR: One or both of the certificates do not exist in the PSA context. Please ensure that the"
-                  "certificate names are identical to the ones in Cisco ACI. ")
-            return False
+        # Find contracts provided by origin and consumed by destination
+        for prov in origin.epg.provides:
+            if prov in destination.epg.consumes:
+                contracts.append(prov)
 
-        # Find matching contract
-        for contract in destination_epg.provides:
-            if contract in origin_epg.consumes:
-                contracts.append(contract)
-        return None if len(contracts) == 0 else contracts
+        return contracts
 
     def validate_contract(self, contract):
         raise NotImplementedError
@@ -102,12 +93,15 @@ class PSA:
         return True  # TODO: Change to False when implemented correctly
 
     def connection_allowed(self, origin, destination):
-        """contracts = self.get_contracts(origin, destination)
-        for con in contracts:
-            if self.validate_contract(con):
-                return True
-        return False"""
-        return True  # TODO: TEMPORARILY ALLOWS ALL CONNECTIONS
+        """
+        This method is simplified and somewhat misleading. The only requirement for a permitted communications link is
+        that there exists one contract between the origin and destination (in either direction). It does not take
+        consumers, providers or filters into account. However, this is fully compliant with the prototype specification.
+        :param origin:          The origin endpoint for communications
+        :param destination:     The destination endpoint for communications
+        :return:
+        """
+        return len(self.get_contracts(origin, destination)) > 0
 
     def register_ou(self, eps):
         """
@@ -256,8 +250,7 @@ class PSA:
                                 found = True
                                 epg.provides.pop(i)
             if not found:
-                print("Error! Could not delete contract {0} because it was not found in EPG {1}."
-                      .format(con_name, epg_name))
+                print("Deleting contract from EPG {} failed because it was not found.".format(epg_name))
         elif attrs["updated"]:
             pass  # No action required
         else:
