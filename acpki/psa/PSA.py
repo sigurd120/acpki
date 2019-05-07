@@ -220,7 +220,7 @@ class PSA:
     def contract_cb(self, action, attrs):
         if attrs["status"] == "created":
             # Create contract
-            con = Contract(attrs["uid"], attrs["tnVzBrCPName"])
+            con = Contract(attrs["uid"], attrs["tnVzBrCPName"], attrs["dn"])
             epg_name = attrs["dn"].split("/")[3][4:]  # Workaround to extract the EPG name from contract DN
             found = False
             for epg in self.epgs:
@@ -237,8 +237,8 @@ class PSA:
                 self.load_epgs_and_contracts()
         elif attrs["status"] == "deleted":
             # Delete contract
-            con_name = attrs["tnVzBrCPName"]
-            epg_name = attrs["dn"].split("/")[3][4:]
+            con_dn = attrs["dn"]  # On deletion contracts only have DN set and not "tnVzBrCPName"
+            epg_name = con_dn.split("/")[3][4:]  # Workaround to extract EPG name from contract DN
             found = False
             for epg in self.epgs:
                 if epg.name == epg_name:
@@ -246,13 +246,13 @@ class PSA:
                     if action == "cons":
                         # Delete consumed contract
                         for i, con in enumerate(epg.consumes):
-                            if con.name == con_name:
+                            if con.dn == con_dn:
                                 found = True
                                 epg.consumes.pop(i)
                     else:
                         # Delete provided contract
                         for i, con in enumerate(epg.provides):
-                            if con.name == con_name:
+                            if con.dn == con_dn:
                                 found = True
                                 epg.provides.pop(i)
             if not found:

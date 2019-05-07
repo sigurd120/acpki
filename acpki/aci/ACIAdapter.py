@@ -129,7 +129,7 @@ class ACIAdapter:
 
         for item in content["imdata"]:
             json_contract = item[cls]["attributes"]
-            contract = Contract(json_contract["uid"], json_contract["tnVzBrCPName"])
+            contract = Contract(json_contract["uid"], json_contract["tnVzBrCPName"], json_contract["dn"])
             contracts.append(contract)
 
         return contracts
