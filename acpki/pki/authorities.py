@@ -109,7 +109,7 @@ class CA:
     certificate in the PKI hierarchy along with its corresponding keys.
     PLEASE NOTE: This implementation is genuinely insecure, as the system is only a proof-of-concept. Anyone with a
     reference to a CA can directly request the private key and sign certificates acting like a CA. It is only developed
-    to look like the architecture of a realistic and secure implementation.
+    to look and act similarly to the architecture of a realistic CA implementation.
     """
     def __init__(self, psa):
         self.root_cert = self.get_root_certificate()
@@ -170,6 +170,7 @@ class CA:
 
     @staticmethod
     def get_keys():
+        # TODO: Remove this method after making RA use own key
         pkey_name = CONFIG["pki"]["ca-pkey-name"]
         if CertificateManager.cert_file_exists(pkey_name):
             return CertificateManager.load_pkey(pkey_name)

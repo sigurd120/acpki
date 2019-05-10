@@ -76,8 +76,6 @@ class Server(EP):
 
         # Create context
         self.context = SSL.Context(SSL.TLSv1_2_METHOD)
-        #self.context.set_options(SSL.OP_NO_SSLv2)
-        #self.context.set_options(SSL.OP_NO_SSLv3)
         self.context.set_options(SSL.OP_NO_TLSv1_2)
         self.context.set_verify(SSL.VERIFY_PEER|SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self.ssl_verify_cb)
         self.context.set_ocsp_server_callback(self.ocsp_server_cb, data=self.name)

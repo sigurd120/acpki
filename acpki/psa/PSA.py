@@ -48,6 +48,8 @@ class PSA:
         for epg in self.epgs:
             if epg.name == epg_name:
                 return epg
+        if self.verbose:
+            print("Warning: Did not find the EPG: {}".format(epg_name))
         return None
 
     def load_epgs_and_contracts(self):
@@ -67,16 +69,18 @@ class PSA:
         contracts = []
 
         # Find contracts consumed by origin and provided by destination
-        for cons in origin.epg.consumes:
-            for prov in destination.epg.provides:
-                if cons.uid == prov.uid:
-                    contracts.append(cons)
+        if origin.epg is not None:
+            for cons in origin.epg.consumes:
+                for prov in destination.epg.provides:
+                    if cons.uid == prov.uid:
+                        contracts.append(cons)
 
         # Find contracts provided by origin and consumed by destination
-        for prov in origin.epg.provides:
-            for cons in destination.epg.consumes:
-                if prov.uid == cons.uid:
-                    contracts.append(prov)
+        if destination.epg is not None:
+            for prov in origin.epg.provides:
+                for cons in destination.epg.consumes:
+                    if prov.uid == cons.uid:
+                        contracts.append(prov)
 
         return contracts
 
@@ -87,7 +91,7 @@ class PSA:
         """
         Validate a certificate based on a Certificate Validation Request (CVR).
         :param cvr:     The CVR to validate
-        :return:        True if successful, False otherwise
+        :return:        True if valid, False otherwise
         """
 
         # Check contract between EPGs
@@ -96,25 +100,24 @@ class PSA:
 
         # Check OU
         subject = cvr.cert.get_subject()
-        ou = None
+        valid_ous = []
 
+        # Load valid OUs from dictionary
         for key, val in self.ous.iteritems():
-            if val == (cvr.origin, cvr.destination):
-                ou = key
+            if val == (cvr.origin.name, cvr.destination.name):
+                valid_ous.append(key)
 
-        if ou is None:
-            return False
+        subj_ou = subject.OU
+        valid = subj_ou in valid_ous
 
-        return True  # TODO: Change to False when implemented correctly
+        return valid
 
     def connection_allowed(self, origin, destination):
         """
-        This method is simplified and somewhat misleading. The only requirement for a permitted communications link is
-        that there exists one contract between the origin and destination (in either direction). It does not take
-        consumers, providers or filters into account. However, this is fully compliant with the prototype specification.
+        Connection is allowed if there exists one or more contracts between the origin and destination EPG.
         :param origin:          The origin endpoint for communications
         :param destination:     The destination endpoint for communications
-        :return:
+        :return:                True if allowed, False otherwise
         """
         return len(self.get_contracts(origin, destination)) > 0
 
