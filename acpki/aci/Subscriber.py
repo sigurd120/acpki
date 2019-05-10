@@ -19,6 +19,7 @@ class Subscriber:
         self.ws_thread = None
         self.refresh_thread = None
         self.refresh_interval = 45
+        self.refresh_failed = 0
         self.connected = False
         self.subscriptions = []
 
