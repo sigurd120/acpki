@@ -55,6 +55,13 @@ class RA:
             self.cert = cert
 
     def request_certificate(self, request):
+        """
+        This method checks if a certificate is allowed by the PSA and issues it if that is the case. The RA currently
+        issues certificates using the CA key for simplicity. The RA could have its own key with signing permission (i.e.
+        the ca flag set to true) and use that instead.
+        :param request:     CertificateRequest object (AC-PKI model)
+        :return:            Certificate or None
+        """
         # Validate request type
         if not isinstance(request, CertificateRequest):
             raise RequestError("Certificate request invalid. Must be of type CertificateRequest!")
@@ -63,8 +70,6 @@ class RA:
         if self.psa.connection_allowed(request.origin, request.destination):
             # Connection allowed
             ou = self.register_ou((request.origin.epg.name, request.destination.epg.name))
-
-            # TODO: Currently CA private key is used for signing. Consider changing to RA.
             subject = request.csr.get_subject()
 
             # Override attributes in the CSR (if they are defined)
@@ -170,7 +175,6 @@ class CA:
 
     @staticmethod
     def get_keys():
-        # TODO: Remove this method after making RA use own key
         pkey_name = CONFIG["pki"]["ca-pkey-name"]
         if CertificateManager.cert_file_exists(pkey_name):
             return CertificateManager.load_pkey(pkey_name)

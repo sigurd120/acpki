@@ -11,7 +11,7 @@ class EPG(object):
         self.dn = dn
         self.name = name
         self.descr = None
-        self.ap = None  # TODO: Should be taken into account
+        self.ap = None
 
         self.provides = []
         self.consumes = []

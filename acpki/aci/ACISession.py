@@ -32,7 +32,7 @@ class ACISession:
 
         # Set initial values
         self.crt_file = None
-        self.verify = self.crt_file is not None  # TODO: Find out how this works...
+        self.verify = self.crt_file is not None
         self.token = None
         self.session = None
         self.subscriber = None
@@ -43,7 +43,6 @@ class ACISession:
 
     def setup(self):
         # Disable certificate verification -- this is not provided by Cisco ACI
-        # TODO: Look into whether certificate can be validated against Cisco's root certificate
         if self.crt_file is None:
             print("APIC Certificate verification is disabled. For improved security, please provide a certificate "
                   "file in the configuration. ")
@@ -91,7 +90,7 @@ class ACISession:
         :return:
         """
         content = json.loads(data)
-        sub_id = content["subscriptionId"][0]  # TODO: Find out why multiple sub ids can be returned
+        sub_id = content["subscriptionId"][0]
         if sub_id in self.cb_methods.keys():
             # Callback method found
             cb = self.cb_methods[sub_id]
@@ -257,10 +256,6 @@ class ACISession:
 
         response = self.session.request("POST", url, data=jsn, headers=headers, verify=self.verify)
         return response
-
-
-    def unsubscribe(self, sub_id):
-        raise NotImplementedError("Method not implemented. Let the subscription expire for now.")  # TODO: Implement
 
     @staticmethod
     def extract_token(response):

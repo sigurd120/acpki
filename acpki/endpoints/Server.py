@@ -62,7 +62,7 @@ class Server(EP):
             csr = CM.create_csr(keys)
             request = CertificateRequest(self, self.peer, csr)
             cert = self.ra.request_certificate(request)
-            if cert is None:  # TODO: Validate own certificate
+            if cert is None:
                 raise ConnectionError("Could not retrieve certificate needed to establish TLS connection.")
 
             # Save keys and certificate
@@ -80,7 +80,6 @@ class Server(EP):
         self.context.set_verify(SSL.VERIFY_PEER|SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self.ssl_verify_cb)
         self.context.set_ocsp_server_callback(self.ocsp_server_cb, data=self.name)
 
-        # TODO: Add try catch here and verify context
         self.context.use_privatekey(self.keys)
         self.context.use_certificate(self.cert)
         self.context.load_verify_locations(CM.get_cert_path(CONFIG["pki"]["ca-cert-name"]))
@@ -91,8 +90,6 @@ class Server(EP):
     def connect(self):
         if self.context is None:
             raise ConnectionError("Cannot connect before context has been created.")
-
-        # TODO: Add try catch
 
         # Create socket and connect
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

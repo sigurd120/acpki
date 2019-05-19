@@ -149,7 +149,6 @@ class Client(EP):
                 self.disconnect()
                 sys.exit(0)
 
-            # TODO: Add try catch
             self.connection.send(line)
             sys.stdout.write(self.connection.recv(1024))
             sys.stdout.flush()

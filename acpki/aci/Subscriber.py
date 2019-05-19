@@ -45,8 +45,6 @@ class Subscriber:
             self.sub_cb = sub_cb
 
         # Connect
-        # TODO: Find out what errors this can cause and catch them.
-
         self.ws = websocket.WebSocket(sslopt=options)
         self.ws.settimeout(60)
         self.ws.connect(self.url)

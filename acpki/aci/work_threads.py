@@ -4,7 +4,7 @@ from acpki.util.exceptions import SubscriptionError
 
 
 class StoppableThread(Thread):
-    def __init__(self, start=True):  # TODO: Use the start parameter to something
+    def __init__(self):
         super(StoppableThread, self).__init__()
         self.running = False
 
@@ -31,7 +31,7 @@ class WSThread(StoppableThread):
         self.sleep_length = float(sleep_length)
 
         self.updated = time.time()
-        super(WSThread, self).__init__(start=start)
+        super(WSThread, self).__init__()
 
         self.start()
 
@@ -66,7 +66,7 @@ class RefreshThread(StoppableThread):
             print("WARNING: Your subscription interval is less than 5 seconds below the WebSocket TTL. This could lead"
                   "to a WebSocket expiration before it is refreshed.")
 
-        super(RefreshThread, self).__init__(start)
+        super(RefreshThread, self).__init__()
 
         self.start()
 

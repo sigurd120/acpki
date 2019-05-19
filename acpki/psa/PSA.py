@@ -201,7 +201,7 @@ class PSA:
         elif attrs["status"] == "modified":
             # Modify existing EPG
             name = attrs["name"] if "name" in attrs else None
-            epg = EPG(attrs["dn"], name)  # TODO: Find out how to get name from DN
+            epg = EPG(attrs["dn"], name)
             for i, epg_local in enumerate(self.epgs):
                 if epg_local.equals(epg):
                     if epg.name is None:

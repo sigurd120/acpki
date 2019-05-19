@@ -21,7 +21,7 @@ class Server(CommAgent):
         self.context = self.get_context()
         self.connection = None
         self.clients = {}
-        self.writers = {}  # TODO: Required? What is this?
+        self.writers = {}
 
         atexit.register(self.shutdown)
         super(Server, self).__init__()
