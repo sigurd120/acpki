@@ -14,7 +14,8 @@ class RA:
     def __init__(self, ca, psa):
         # Arguments
         self.ca = ca
-        self.psa = psa
+        self.ocsp_responder = ca.ocsp_responder
+        self.psa = psa(self)
         self.cert = None
         self.verbose = CONFIG["verbose"]
 
@@ -120,8 +121,8 @@ class CA:
         self.root_cert = self.get_root_certificate()
         self.keys = self.get_keys()  # Must be called after get_root_certificate() to ensure synchronised
         self.psa = psa
+        self.ocsp_responder = OCSPResponder()  # Must be declared before calling the RA
         self.ra = RA(self, self.psa)
-        self.ocsp_responder = OCSPResponder()
 
     def validate_cert(self, cvr):
         """

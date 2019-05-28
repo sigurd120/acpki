@@ -13,7 +13,11 @@ class PSA:
     an internal model of the most critical data in the Cisco APIC, so it can continue operations even if the APIC is
     unavailable for a while during runtime.
     """
-    def __init__(self):
+    def __init__(self, ca):
+        self.ca = ca
+        self.ra = ca.ra
+        self.ocsp_responder = ca.ocsp_responder
+
         self.verbose = CONFIG["verbose"]
         self.epgs = []
         self.ous = {}
@@ -261,6 +265,7 @@ class PSA:
                             if con.dn == con_dn:
                                 found = True
                                 epg.provides.pop(i)
+
             if not found:
                 print("Deleting contract from EPG {} failed because it was not found.".format(epg_name))
         elif attrs["updated"]:
